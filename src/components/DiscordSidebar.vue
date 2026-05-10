@@ -29,6 +29,14 @@ const isLoading = ref(true)
 const loadError = ref<string | null>(null)
 const openedFolders = ref<Record<string, boolean>>({})
 
+const props = defineProps<{
+  activeRoomId?: string
+}>()
+
+const emit = defineEmits<{
+  (event: 'select-channel', payload: { roomId: string; channelName: string; channelType: ChannelKind }): void
+}>()
+
 const isFolder = (node: SidebarNode): node is ChannelFolder => node.type === 'folder'
 
 const sortByOrder = <T extends { order?: number; name: string }>(items: T[]) => {
@@ -73,18 +81,32 @@ const channelPrefix = (kind: ChannelKind) => {
   return kind === 'text' ? '#' : '🔊'
 }
 
+const isActiveChannel = (roomId: string) => {
+  return props.activeRoomId === roomId
+}
+
+const selectChannel = (channel: ChannelItem) => {
+  emit('select-channel', {
+    roomId: channel.id,
+    channelName: channel.name,
+    channelType: channel.type,
+  })
+}
+
 onMounted(async () => {
   try {
     const response = await fetch('/channel-layout.json')
 
     if (!response.ok) {
-      throw new Error('Impossible de charger la configuration des salons.')
+      loadError.value = 'Impossible de charger la configuration des salons.'
+      return
     }
 
     const data = (await response.json()) as ChannelLayout
 
     if (!Array.isArray(data.items)) {
-      throw new Error('Le JSON de configuration est invalide.')
+      loadError.value = 'Le JSON de configuration est invalide.'
+      return
     }
 
     layout.value = data
@@ -134,19 +156,31 @@ onMounted(async () => {
 
             <ul v-show="isFolderOpen(node.id)" class="ml-2 border-l border-base-300 pl-2">
               <li v-for="channel in node.children" :key="channel.id">
-                <a class="active:bg-base-300/70 flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60">
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
+                  :class="isActiveChannel(channel.id) ? 'bg-primary/10 text-primary' : 'hover:bg-base-300/60 text-base-content'"
+                  :aria-current="isActiveChannel(channel.id) ? 'page' : undefined"
+                  @click="selectChannel(channel)"
+                >
                   <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(channel.type) }}</span>
                   <span class="truncate">{{ channel.name }}</span>
-                </a>
+                </button>
               </li>
             </ul>
           </li>
 
           <li v-else>
-            <a class="active:bg-base-300/70 flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60">
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
+              :class="isActiveChannel(node.id) ? 'bg-primary/10 text-primary' : 'hover:bg-base-300/60 text-base-content'"
+              :aria-current="isActiveChannel(node.id) ? 'page' : undefined"
+              @click="selectChannel(node)"
+            >
               <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(node.type) }}</span>
               <span class="truncate">{{ node.name }}</span>
-            </a>
+            </button>
           </li>
         </template>
       </ul>
