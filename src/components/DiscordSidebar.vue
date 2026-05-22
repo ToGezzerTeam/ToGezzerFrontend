@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 
 type ChannelKind = 'text' | 'voice'
 
@@ -28,6 +29,7 @@ const layout = ref<ChannelLayout | null>(null)
 const isLoading = ref(true)
 const loadError = ref<string | null>(null)
 const openedFolders = ref<Record<string, boolean>>({})
+const route = useRoute()
 
 const props = defineProps<{
   activeRoomId?: string
@@ -91,6 +93,8 @@ const selectChannel = (channel: ChannelItem) => {
     channelName: channel.name,
     channelType: channel.type,
   })
+const isChannelActive = (channelId: string) => {
+  return route.params.channelId === channelId
 }
 
 onMounted(async () => {
@@ -156,6 +160,7 @@ onMounted(async () => {
 
             <ul v-show="isFolderOpen(node.id)" class="ml-2 border-l border-base-300 pl-2">
               <li v-for="channel in node.children" :key="channel.id">
+<<<<<<< HEAD
                 <button
                   type="button"
                   class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
@@ -166,11 +171,22 @@ onMounted(async () => {
                   <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(channel.type) }}</span>
                   <span class="truncate">{{ channel.name }}</span>
                 </button>
+=======
+                <RouterLink
+                  :to="{ name: 'channel', params: { channelId: channel.id } }"
+                  class="active:bg-base-300/70 flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60"
+                  :class="{ 'bg-base-300/70': isChannelActive(channel.id) }"
+                >
+                  <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(channel.type) }}</span>
+                  <span class="truncate">{{ channel.name }}</span>
+                </RouterLink>
+>>>>>>> d3198cf (feat: implement login and registration views, add channel routing)
               </li>
             </ul>
           </li>
 
           <li v-else>
+<<<<<<< HEAD
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
@@ -181,6 +197,16 @@ onMounted(async () => {
               <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(node.type) }}</span>
               <span class="truncate">{{ node.name }}</span>
             </button>
+=======
+            <RouterLink
+              :to="{ name: 'channel', params: { channelId: node.id } }"
+              class="active:bg-base-300/70 flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60"
+              :class="{ 'bg-base-300/70': isChannelActive(node.id) }"
+            >
+              <span class="w-5 text-center text-sm text-base-content/60">{{ channelPrefix(node.type) }}</span>
+              <span class="truncate">{{ node.name }}</span>
+            </RouterLink>
+>>>>>>> d3198cf (feat: implement login and registration views, add channel routing)
           </li>
         </template>
       </ul>
