@@ -1,5 +1,5 @@
 import { HTTPError } from 'ky'
-import { historiqueApi } from '@/api/client'
+import { messageApi } from '@/api/client'
 import { MessagesPageSchema, type MessagesPageResponseDto } from '@/api/guards/message.guards'
 import type { MessagesPageRequestOptions } from '@/api/types/messages'
 
@@ -11,7 +11,7 @@ export async function fetchMessagesPage(
   if (!normalizedRoomId) throw new Error('Le roomId est requis.')
 
   try {
-    const data = await historiqueApi
+    const data = await messageApi
       .get(encodeURIComponent(normalizedRoomId), {
         signal: options.signal,
         searchParams: {
