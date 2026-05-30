@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts';
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
 import VoiceChatHeader from './VoiceChatHeader.vue';
 import VoiceChatControls from './VoiceChatControls.vue';
 import RoomUsersList from './RoomUsersList.vue';

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getVoiceChatService } from '@/api/voiceChat/service'
+import { getVoiceChatService } from '@/api/socket/voiceChat/service.ts'
 import type {
   RoomUser,
   UserMediaState,

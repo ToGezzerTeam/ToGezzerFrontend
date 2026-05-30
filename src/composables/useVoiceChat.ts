@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
 export interface UseVoiceChatOptions {
   autoConnect?: boolean

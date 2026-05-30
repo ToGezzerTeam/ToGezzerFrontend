@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
 interface Props {
   updateInterval?: number

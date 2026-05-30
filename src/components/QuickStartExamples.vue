@@ -154,7 +154,7 @@ const startVoiceChat = async () => {
 /*
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
 defineProps<{
   channelId: string
@@ -339,7 +339,7 @@ watch(
 /*
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
 interface UserInfo {
   userId: string
