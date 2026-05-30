@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "id": "regles",
+      "name": "règles",
+      "type": "text",
+      "order": 1
+    },
+    {
+      "id": "annonces",
+      "name": "annonces",
+      "type": "text",
+      "order": 2
+    },
+    {
+      "id": "communaute",
+      "name": "COMMUNAUTÉ",
+      "type": "folder",
+      "order": 3,
+      "children": [
+        {
+          "id": "general",
+          "name": "général",
+          "type": "text",
+          "order": 1
+        },
+        {
+          "id": "memes",
+          "name": "mèmes",
+          "type": "text",
+          "order": 2
+        },
+        {
+          "id": "salon-1",
+          "name": "Salon 1",
+          "type": "voice",
+          "order": 3
+        },
+        {
+          "id": "salon-2",
+          "name": "Salon 2",
+          "type": "voice",
+          "order": 4
+        }
+      ]
+    },
+    {
+      "id": "projets",
+      "name": "PROJETS",
+      "type": "folder",
+      "order": 4,
+      "children": [
+        {
+          "id": "ideas",
+          "name": "idées",
+          "type": "text",
+          "order": 1
+        },
+        {
+          "id": "support-tech",
+          "name": "support-tech",
+          "type": "text",
+          "order": 2
+        },
+        {
+          "id": "standup",
+          "name": "Standup",
+          "type": "voice",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "id": "afk",
+      "name": "AFK",
+      "type": "voice",
+      "order": 5
+    }
+  ]
+}
