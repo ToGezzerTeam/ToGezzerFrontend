@@ -1,27 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import VoiceChat from '@/components/VoiceChat.vue';
+import { ref } from 'vue'
+import VoiceChat from '@/components/VoiceChat.vue'
 
-const router = useRouter();
-
-const roomId = ref<string>('');
-const userId = ref<string>('');
-const isInVoiceChat = ref(false);
+const roomId = ref<string>('')
+const userId = ref<string>('')
+const isInVoiceChat = ref(false)
 
 const startVoiceChat = () => {
-  if (!roomId.value || !userId.value) {
-    alert('Please enter both room ID and user ID');
-    return;
+  if (!roomId.value ) {
+    alert('Please enter room ID ')
+    return
   }
-  isInVoiceChat.value = true;
-};
+  isInVoiceChat.value = true
+}
 
 const exitVoiceChat = () => {
-  isInVoiceChat.value = false;
-  roomId.value = '';
-  userId.value = '';
-};
+  isInVoiceChat.value = false
+  roomId.value = ''
+  userId.value = ''
+}
 </script>
 
 <template>
@@ -52,24 +49,11 @@ const exitVoiceChat = () => {
                   />
                 </div>
 
-                <!-- User ID Input -->
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text">Your User ID</span>
-                  </label>
-                  <input
-                    v-model="userId"
-                    type="text"
-                    placeholder="Enter your user ID"
-                    class="input input-bordered"
-                    @keyup.enter="startVoiceChat"
-                  />
-                </div>
 
                 <!-- Join Button -->
                 <button
                   @click="startVoiceChat"
-                  :disabled="!roomId || !userId"
+                  :disabled="!roomId"
                   class="btn btn-primary mt-4"
                 >
                   Join Voice Chat
@@ -112,9 +96,7 @@ const exitVoiceChat = () => {
     <div v-else class="container mx-auto max-w-4xl p-4 min-h-screen flex flex-col">
       <!-- Exit Button -->
       <div class="flex justify-end mb-4">
-        <button @click="exitVoiceChat" class="btn btn-outline btn-sm">
-          Exit Chat
-        </button>
+        <button @click="exitVoiceChat" class="btn btn-outline btn-sm">Exit Chat</button>
       </div>
 
       <!-- Voice Chat Component -->
@@ -122,4 +104,3 @@ const exitVoiceChat = () => {
     </div>
   </div>
 </template>
-

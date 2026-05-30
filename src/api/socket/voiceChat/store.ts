@@ -19,6 +19,7 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
   const isConnecting = ref(false)
   const currentRoomId = ref<string | null>(null)
   const currentUserId = ref<string | null>(null)
+  const currentUsername = ref<string | null>(null)
   const roomUsers = ref<Map<string, RoomUser>>(new Map())
   const isMicMuted = ref(false)
   const isSongMuted = ref(false)
@@ -46,19 +47,20 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
     if (user) Object.assign(user, state)
   }
 
-  const connect = async (roomId: string, userId: string) => {
+  const connect = async (roomId: string) => {
     try {
       isConnecting.value = true
       error.value = null
 
-      const connected = await voiceService.connect(roomId, userId)
+      setupListeners()
+
+      const connected = await voiceService.connect(roomId)
       if (!connected) throw new Error('Failed to connect')
 
       currentRoomId.value = roomId
-      currentUserId.value = userId
       isConnected.value = true
 
-      setupListeners()
+
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       isConnected.value = false
@@ -123,6 +125,7 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
     isConnecting.value = false
     currentRoomId.value = null
     currentUserId.value = null
+    currentUsername.value = null
     roomUsers.value.clear()
     isMicMuted.value = false
     isSongMuted.value = false
@@ -131,18 +134,25 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
 
   const setupListeners = () => {
     voiceService.on('joinedRoom', (data: JoinedVoiceRoomPayload) => {
-      if (currentUserId.value) {
+      if (data.currentUser) {
+        currentUserId.value = data.currentUser.userId
+        currentUsername.value = data.currentUser.username
         addUser({
           socketId: voiceService.getSocketId() ?? '',
           userId: currentUserId.value,
+          username: currentUsername.value,
           isMicMuted: false,
           isSongMuted: false,
-          displayName: currentUserId.value,
           isCurrentUser: true,
         })
       }
 
-      data.existingUsers?.forEach(addUser)
+      data.existingUsers?.forEach((user) =>
+        addUser({
+          ...user,
+          isCurrentUser: false,
+        }),
+      )
     })
 
     voiceService.on('userJoined', (user: RoomUser) => addUser(user))
@@ -165,6 +175,7 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
     isConnecting,
     currentRoomId,
     currentUserId,
+    currentUsername,
     roomUsers,
     isMicMuted,
     isSongMuted,

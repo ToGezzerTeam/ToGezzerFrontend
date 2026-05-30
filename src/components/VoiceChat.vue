@@ -9,14 +9,13 @@ import RemoteAudioContainer from './RemoteAudioContainer.vue';
 
 const props = defineProps<{
   roomId: string;
-  userId: string;
 }>();
 
 const voiceChatStore = useVoiceChatStore();
 
 onMounted(async () => {
   try {
-    await voiceChatStore.connect(props.roomId, props.userId);
+    await voiceChatStore.connect(props.roomId);
     await voiceChatStore.startAudio();
   } catch (error) {
     console.error('Failed to initialize voice chat:', error);

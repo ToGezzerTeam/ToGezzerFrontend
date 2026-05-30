@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import { login, register } from '@/api/route/login'
 import {
   createMessage,
@@ -18,9 +18,22 @@ import {
   joinServer,
   renameServer,
 } from '@/api/route/server'
+import {
+  joinRoom as wsJoinRoom,
+  onMessage,
+  leaveRoom as wsLeaveRoom,
+  disconnectSocket,
+} from '@/api/socket/messages/socket'
+import type { MessageDTO } from '@/api/types/messages'
 
 const isBusy = ref(false)
 const output = ref<string>('')
+
+// WebSocket state
+const wsRoomId = ref('')
+const wsMessages = ref<MessageDTO[]>([])
+const wsConnected = ref(false)
+let unsubscribeMessage: (() => void) | null = null
 
 const setOutput = (title: string, payload: unknown) => {
   output.value = `${title}\n${JSON.stringify(payload, null, 2)}`
@@ -76,7 +89,6 @@ const fetchPageSize = ref('')
 const fileRoomUuid = ref('')
 const fileObjectName = ref('')
 const fileMessageUuid = ref('')
-const fileUserUuid = ref('')
 const uploadFileInput = ref<File | null>(null)
 
 const toOptionalNumber = (value: string): number | undefined => {
@@ -90,6 +102,47 @@ const onFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement | null
   uploadFileInput.value = target?.files?.[0] ?? null
 }
+
+// WebSocket methods
+const connectToWsRoom = () => {
+  if (!wsRoomId.value) {
+    alert('Veuillez entrer un roomId')
+    return
+  }
+
+  wsJoinRoom(wsRoomId.value)
+  wsConnected.value = true
+  wsMessages.value = []
+
+  // Setup message listener
+  unsubscribeMessage = onMessage((message: MessageDTO) => {
+    console.log('[Test] Message received:', message)
+    wsMessages.value.push(message)
+  })
+
+  output.value = `Connecté à la room WebSocket: ${wsRoomId.value}\nEn attente de messages...`
+}
+
+const disconnectFromWsRoom = () => {
+  if (wsRoomId.value) {
+    wsLeaveRoom(wsRoomId.value)
+  }
+  if (unsubscribeMessage) {
+    unsubscribeMessage()
+    unsubscribeMessage = null
+  }
+  disconnectSocket()
+  wsConnected.value = false
+  output.value = 'Déconnecté du serveur WebSocket'
+}
+
+const clearWsMessages = () => {
+  wsMessages.value = []
+}
+
+onBeforeUnmount(() => {
+  disconnectFromWsRoom()
+})
 </script>
 
 <template>
@@ -159,6 +212,66 @@ const onFileChange = (event: Event) => {
                     Lancer register
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-border bg-base-100 shadow-sm">
+            <div class="card-body space-y-4">
+              <h2 class="card-title">WebSocket - Tests Messages</h2>
+              <div class="space-y-4">
+                <div class="space-y-2">
+                  <p class="text-sm font-medium">Connexion WebSocket</p>
+                  <div class="flex gap-2">
+                    <input
+                      v-model="wsRoomId"
+                      class="input input-bordered flex-1"
+                      type="text"
+                      placeholder="roomId"
+                    />
+                    <button
+                      class="btn btn-primary"
+                      type="button"
+                      :disabled="wsConnected"
+                      @click="connectToWsRoom"
+                    >
+                      Connecter
+                    </button>
+                    <button
+                      class="btn btn-outline"
+                      type="button"
+                      :disabled="!wsConnected"
+                      @click="disconnectFromWsRoom"
+                    >
+                      Déconnecter
+                    </button>
+                  </div>
+                  <div class="badge" :class="wsConnected ? 'badge-success' : 'badge-error'">
+                    {{ wsConnected ? '✓ Connecté' : '✗ Déconnecté' }}
+                  </div>
+                </div>
+
+                <div class="divider my-2">Messages reçus ({{ wsMessages.length }})</div>
+
+                <div class="max-h-80 overflow-y-auto rounded-box border border-base-300 bg-base-200 p-3">
+                  <div v-if="wsMessages.length === 0" class="text-center text-base-content/50">
+                    Aucun message reçu
+                  </div>
+                  <div v-for="(msg, idx) in wsMessages" :key="idx" class="mb-3 border-l-2 border-primary pl-3">
+                    <div class="text-xs text-base-content/70">Message #{{ idx + 1 }}</div>
+                    <div class="mt-1 break-all rounded bg-base-100 p-2 text-sm">
+                      {{ typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2) }}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  class="btn btn-sm btn-outline w-full"
+                  type="button"
+                  @click="clearWsMessages"
+                >
+                  Effacer les messages
+                </button>
               </div>
             </div>
           </div>
@@ -409,11 +522,6 @@ const onFileChange = (event: Event) => {
                     placeholder="objectName"
                   />
                   <input
-                    v-model="fileUserUuid"
-                    class="input input-bordered w-full"
-                    placeholder="userUuid"
-                  />
-                  <input
                     v-model="fileMessageUuid"
                     class="input input-bordered w-full"
                     placeholder="messageUuid"
@@ -432,7 +540,7 @@ const onFileChange = (event: Event) => {
                       class="btn btn-outline"
                       type="button"
                       :disabled="isBusy"
-                      @click="runAction('Get file url', () => getFileUrl(fileRoomUuid, fileObjectName, fileUserUuid))"
+                      @click="runAction('Get file url', () => getFileUrl(fileRoomUuid, fileObjectName))"
                     >
                       Get URL
                     </button>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
-const voiceChatStore = useVoiceChatStore();
+const voiceChatStore = useVoiceChatStore()
 </script>
 
 <template>
@@ -30,9 +30,9 @@ const voiceChatStore = useVoiceChatStore();
 
           <!-- User Info -->
           <div class="flex-1">
-            <div class="font-semibold text-sm">{{ user.userId }}</div>
+            <div class="font-semibold text-sm">{{ user.username }}</div>
             <div class="text-xs text-base-content/60">
-              {{ user.displayName || 'Anonymous' }}
+              {{ user.userId }}
             </div>
           </div>
 
@@ -67,4 +67,3 @@ const voiceChatStore = useVoiceChatStore();
     </div>
   </div>
 </template>
-
