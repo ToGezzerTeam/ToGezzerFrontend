@@ -1,7 +1,7 @@
 export const MESSAGE_STATES = ['created', 'updated', 'deleted'] as const
-export type MessageState = (typeof MESSAGE_STATES)[number]
-
 export const CONTENT_TYPES = ['text'] as const
+
+export type MessageState = (typeof MESSAGE_STATES)[number]
 export type ContentType = (typeof CONTENT_TYPES)[number]
 
 export type ContentDTO = {
@@ -13,10 +13,10 @@ export type MessageDTO = {
   uuid: string
   roomId: string
   authorId: string
-  answerTo?: string | null
   content: ContentDTO
   state: MessageState
   createdAt: string
+  answerTo?: string | null
   updatedAt?: string | null
   deletedAt?: string | null
   deletedBy?: string | null
@@ -33,6 +33,3 @@ export type MessagesPageRequestOptions = {
   signal?: AbortSignal
   baseUrl?: string
 }
-
-export const DEFAULT_MESSAGE_PAGE_SIZE = 100
-

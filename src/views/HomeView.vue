@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
+// import { fetchMessagesPage, joinRoom, leaveRoom, onMessage } from '@/api/messages'
+// import type { MessageDTO, MessagesPageResponseDto } from '@/api/messages'
+// import { sortMessagesChronologically } from '@/api/utils/messages.utils.ts'
 
 type ChannelKind = 'text' | 'voice'
 
@@ -198,5 +201,3 @@ onMounted(async () => {
     </main>
   </div>
 </template>
-
-<style scoped></style>
