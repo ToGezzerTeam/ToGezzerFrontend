@@ -1,6 +1,6 @@
 import ky, { HTTPError } from 'ky'
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_DEFAULT_API?.replace(/\/$/, '') ??
   (globalThis.window === undefined ? '' : globalThis.location.origin.replace(/\/$/, ''))
 

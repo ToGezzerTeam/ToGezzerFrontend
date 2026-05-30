@@ -1,4 +1,4 @@
-import { apiClient, handleHttpError } from '@/api/client.ts'
+import { API_BASE_URL, apiClient, handleHttpError } from '@/api/client.ts'
 import {
   type JoinRoomDTO,
   type RenameRoomDTO,
@@ -6,13 +6,13 @@ import {
   RoomDTOSchema,
 } from '@/api/types/room.ts'
 
-const roomApi = apiClient.extend({ prefix: 'rooms' })
+const roomApi = apiClient.extend({ prefix:`${API_BASE_URL}/api/rooms` })
 
 export async function createRoom(
   body: Omit<RoomDTO, 'id' | 'uuid' | 'createdAt'>,
 ): Promise<RoomDTO> {
   try {
-    return RoomDTOSchema.parse(await roomApi.post('',{ json: body }).json())
+    return RoomDTOSchema.parse(await apiClient.post('rooms',{ json: body }).json())
   } catch (err) {
     return handleHttpError(err, 'Impossible de créer le salon')
   }

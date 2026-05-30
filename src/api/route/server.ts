@@ -6,15 +6,15 @@ import {
   type ServerDTO,
   ServerDTOSchema,
 } from '@/api/types/server.ts'
-import { apiClient, handleHttpError } from '@/api/client.ts'
+import { API_BASE_URL, apiClient, handleHttpError } from '@/api/client.ts'
 
 
-const serverApi = apiClient.extend({ prefix: 'servers' })
+const serverApi = apiClient.extend({ prefix: `${API_BASE_URL}/api/servers` })
 export async function createServer(
   body: Omit<ServerDTO, 'id' | 'uuid' | 'createdAt'>,
 ): Promise<ServerDTO> {
   try {
-    return ServerDTOSchema.parse(await serverApi.post('', { json: body }).json())
+    return ServerDTOSchema.parse(await apiClient.post('servers', { json: body }).json())
   } catch (err) {
     return handleHttpError(err, 'Impossible de créer le serveur')
   }

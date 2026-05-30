@@ -6,10 +6,10 @@ import {
   type UpdateMessageDTO,
   UpdateMessageDTOSchema,
 } from '@/api/types/messages.ts'
-import { apiClient, handleHttpError } from '@/api/client.ts'
+import { API_BASE_URL, apiClient, handleHttpError } from '@/api/client.ts'
 import { z } from 'zod'
 
-const messageApi = apiClient.extend({ prefix: 'messages' })
+const messageApi = apiClient.extend({ prefix:`${API_BASE_URL}/api/messages` })
 
 
 export async function fetchMessagesPage(
@@ -90,14 +90,11 @@ export async function uploadFile(roomUuid: string, file: File | Blob): Promise<v
 export async function getFileUrl(
   roomUuid: string,
   objectName: string,
-  userUuid: string,
 ): Promise<string> {
   try {
     return z.string().parse(
       await apiClient
-        .get(`messages/${encodeURIComponent(roomUuid)}/files/${encodeURIComponent(objectName)}`, {
-          searchParams: { userUuid },
-        })
+        .get(`messages/${encodeURIComponent(roomUuid)}/files/${encodeURIComponent(objectName)}`)
         .json(),
     )
   } catch (err) {
