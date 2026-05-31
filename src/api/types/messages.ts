@@ -21,6 +21,7 @@ export const MessageDTOSchema = z.object({
   uuid: z.string(),
   roomId: z.string(),
   authorId: z.string(),
+  authorName: z.string(),
   answerTo: z.string().nullable().optional(),
   content: ContentDTOSchema,
   state: z.enum(MESSAGE_STATES),
@@ -39,18 +40,13 @@ export const UpdateMessageDTOSchema = z.object({
   message: z.string().min(1),
 })
 
-export const DeleteMessageDTOSchema = z.object({
-  userUuid: z.uuid().nullable().optional(),
-})
 
 export const MessagesPageResponseDtoSchema = z.object({
   messageDTOS: z.array(MessageDTOSchema),
   hasMore: z.boolean(),
 })
 
-export type ContentDTO = z.infer<typeof ContentDTOSchema>
 export type MessageDTO = z.infer<typeof MessageDTOSchema>
 export type CreateMessageDTO = z.infer<typeof CreateMessageDTOSchema>
 export type UpdateMessageDTO = z.infer<typeof UpdateMessageDTOSchema>
-export type DeleteMessageDTO = z.infer<typeof DeleteMessageDTOSchema>
 export type MessagesPageResponseDto = z.infer<typeof MessagesPageResponseDtoSchema>

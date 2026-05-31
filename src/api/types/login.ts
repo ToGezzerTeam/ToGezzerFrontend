@@ -8,10 +8,10 @@ export const JwtPayloadSchema = z.object({
 })
 
 export const UserResponseSchema = z.object({
-  id: z.number().int().nullable().optional(),
-  uuid: z.uuid().nullable().optional(),
-  email: z.string().nullable().optional(),
-  username: z.string().nullable().optional(),
+  id: z.number().int(),
+  uuid: z.uuid(),
+  email: z.string(),
+  username: z.string(),
 })
 
 export const LoginResponseSchema = z.object({
