@@ -2,6 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { io } from 'socket.io-client'
 
+type JoinVoiceRoomResponse = {
+  success: boolean
+  message?: string
+  error?: string
+  existingUsers?: unknown[]
+}
+
 // État du test
 const status = ref<string>('Initialisation...')
 const logs = ref<string[]>([])
@@ -109,7 +116,7 @@ const testJoinRoom = async () => {
         socket.emit('joinVoiceRoom', {
           roomId: roomId.value,
           userId: userId.value
-        }, (response) => {
+        }, (response: JoinVoiceRoomResponse) => {
           clearTimeout(timeout)
 
           if (!response) {
@@ -163,7 +170,9 @@ const testMicrophone = async () => {
 
     if (audioTracks.length > 0) {
       const track = audioTracks[0]
-      addLog(`Appareil: ${track.getSettings().deviceId ? 'Trouvé' : 'Inconnu'}`, 'success')
+      if (track) {
+        addLog(`Appareil: ${track.getSettings().deviceId ? 'Trouvé' : 'Inconnu'}`, 'success')
+      }
     }
 
     stream.getTracks().forEach((track) => track.stop())

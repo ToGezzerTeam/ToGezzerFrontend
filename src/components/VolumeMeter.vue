@@ -18,7 +18,7 @@ const isMeterActive = ref(false)
 
 let audioContext: AudioContext | null = null
 let analyser: AnalyserNode | null = null
-let dataArray: Uint8Array | null = null
+let dataArray: Uint8Array<ArrayBuffer> | null = null
 let animationId: number | null = null
 
 const startMeter = async () => {
@@ -60,7 +60,7 @@ const updateVolume = () => {
 
   let sum = 0
   for (let i = 0; i < dataArray.length; i++) {
-    sum += dataArray[i]
+    sum += dataArray[i] ?? 0
   }
   const average = sum / dataArray.length
   volumeLevel.value = (average / 255) * props.sensitivity

@@ -2,7 +2,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import HomeView from '../views/HomeView.vue'
-import { buildMessagesUrl, sortMessagesChronologically } from '@/services/messages'
+import { sortMessagesChronologically } from '@/api/utils/messages.utils.ts'
+
+const buildMessagesUrl = (
+  roomId: string,
+  options: { baseUrl?: string; messageUuid?: string; pageSize?: number } = {},
+) => {
+  const normalizedBaseUrl = (options.baseUrl ?? 'http://localhost:8080').replace(/\/+$/, '')
+  const searchParams = new URLSearchParams()
+
+  if (options.messageUuid) {
+    searchParams.set('messageUuid', options.messageUuid)
+  }
+
+  if (options.pageSize != null) {
+    searchParams.set('pageSize', String(options.pageSize))
+  }
+
+  return `${normalizedBaseUrl}/api/messages/${roomId}?${searchParams.toString()}`
+}
 
 const DiscordSidebarStub = {
   template: `
