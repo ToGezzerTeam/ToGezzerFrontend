@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts';
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
 import VoiceChatHeader from './VoiceChatHeader.vue';
 import VoiceChatControls from './VoiceChatControls.vue';
 import RoomUsersList from './RoomUsersList.vue';
@@ -9,14 +9,13 @@ import RemoteAudioContainer from './RemoteAudioContainer.vue';
 
 const props = defineProps<{
   roomId: string;
-  userId: string;
 }>();
 
 const voiceChatStore = useVoiceChatStore();
 
 onMounted(async () => {
   try {
-    await voiceChatStore.connect(props.roomId, props.userId);
+    await voiceChatStore.connect(props.roomId);
     await voiceChatStore.startAudio();
   } catch (error) {
     console.error('Failed to initialize voice chat:', error);

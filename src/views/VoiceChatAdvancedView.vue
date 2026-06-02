@@ -5,7 +5,6 @@ import VoiceChat from '@/components/VoiceChat.vue'
 import VolumeMeter from '@/components/VolumeMeter.vue'
 
 const roomId = ref<string>('')
-const userId = ref<string>('')
 const displayName = ref<string>('')
 const isInVoiceChat = ref(false)
 
@@ -16,18 +15,16 @@ const {
   toggleSong,
   muteMic,
   unmuteMic,
-  disableSong,
-  enableSong,
   store: voiceChatStore,
 } = useVoiceChat()
 
 const canJoin = computed(() => {
-  return roomId.value.trim() !== '' && userId.value.trim() !== ''
+  return roomId.value.trim() !== ''
 })
 
 const startVoiceChat = async () => {
   try {
-    await connect(roomId.value, userId.value)
+    await connect(roomId.value)
     isInVoiceChat.value = true
   } catch (error) {
     console.error('Failed to start voice chat:', error)
@@ -46,7 +43,6 @@ const exitVoiceChat = async () => {
 
 const resetForm = () => {
   roomId.value = ''
-  userId.value = ''
   displayName.value = ''
 }
 
@@ -116,26 +112,6 @@ if (typeof window !== 'undefined') {
                   <label class="label">
                     <span class="label-text-alt text-base-content/50">
                       Unique identifier for the room
-                    </span>
-                  </label>
-                </div>
-
-                <!-- User ID Input -->
-                <div class="form-control">
-                  <label class="label">
-                    <span class="label-text font-semibold">Your User ID</span>
-                    <span class="label-text-alt text-error">*</span>
-                  </label>
-                  <input
-                    v-model.trim="userId"
-                    type="text"
-                    placeholder="e.g., user-456"
-                    class="input input-bordered input-lg"
-                    @keyup.enter="canJoin && startVoiceChat()"
-                  />
-                  <label class="label">
-                    <span class="label-text-alt text-base-content/50">
-                      Your unique identifier
                     </span>
                   </label>
                 </div>
@@ -222,7 +198,7 @@ if (typeof window !== 'undefined') {
       <!-- Top Bar -->
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h1 class="text-3xl font-bold">🎤 {{ displayName || userId }}</h1>
+          <h1 class="text-3xl font-bold">🎤 </h1>
           <p class="text-sm text-base-content/60">Room: {{ roomId }}</p>
         </div>
         <button @click="exitVoiceChat" class="btn btn-outline btn-error">
@@ -234,7 +210,7 @@ if (typeof window !== 'undefined') {
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
         <!-- Main Content -->
         <div class="lg:col-span-2">
-          <VoiceChat :room-id="roomId" :user-id="userId" />
+          <VoiceChat :room-id="roomId" />
         </div>
 
         <!-- Sidebar -->

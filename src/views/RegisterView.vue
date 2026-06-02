@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { register } from '@/api/route/login.ts'
 
 const router = useRouter()
 
@@ -14,12 +15,12 @@ const errorMessage = ref<string | null>(null)
 
 const canSubmit = computed(() => {
   return (
-    fullName.value.trim().length >= 2
-    && email.value.trim().length > 3
-    && password.value.length >= 6
-    && confirmPassword.value.length >= 6
-    && acceptTerms.value
-    && !isSubmitting.value
+    fullName.value.trim().length >= 2 &&
+    email.value.trim().length > 3 &&
+    password.value.length >= 6 &&
+    confirmPassword.value.length >= 6 &&
+    acceptTerms.value &&
+    !isSubmitting.value
   )
 })
 
@@ -47,7 +48,7 @@ const handleRegister = async () => {
   }
 
   if (!acceptTerms.value) {
-    errorMessage.value = 'Tu dois accepter les conditions d\'utilisation.'
+    errorMessage.value = "Tu dois accepter les conditions d'utilisation."
     return
   }
 
@@ -56,13 +57,16 @@ const handleRegister = async () => {
   try {
     await new Promise((resolve) => setTimeout(resolve, 650))
 
-    // Placeholder signup flow until backend auth is connected.
-    console.log('Register payload', {
-      fullName: fullName.value,
-      email: email.value,
-    })
-
-    await router.push('/login')
+    try {
+      await register({
+        username: fullName.value,
+        email: email.value,
+        password: password.value,
+      })
+      await router.push('/')
+    } catch (err) {
+      errorMessage.value = err instanceof Error ? err.message : 'Erreur inconnue.'
+    }
   } finally {
     isSubmitting.value = false
   }
@@ -72,10 +76,15 @@ const handleRegister = async () => {
 <template>
   <section class="min-h-screen bg-base-200">
     <div class="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8 sm:px-6 lg:px-8">
-      <div class="grid w-full overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl md:grid-cols-[1.05fr_1fr]">
+      <div
+        class="grid w-full overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl md:grid-cols-[1.05fr_1fr]"
+      >
         <div class="relative min-h-56 bg-secondary p-7 text-secondary-content sm:min-h-0 sm:p-10">
           <div class="absolute right-6 top-6">
-            <RouterLink class="btn btn-sm btn-outline border-secondary-content/35 text-secondary-content hover:bg-secondary-content/15" to="/">
+            <RouterLink
+              class="btn btn-sm btn-outline border-secondary-content/35 text-secondary-content hover:bg-secondary-content/15"
+              to="/"
+            >
               Retour
             </RouterLink>
           </div>
@@ -87,7 +96,8 @@ const handleRegister = async () => {
               <span class="block text-secondary-content/80">et démarre en équipe.</span>
             </h1>
             <p class="text-secondary-content/75">
-              Inscris-toi pour créer ton compte, rejoindre les channels, et gérer tes discussions en temps réel.
+              Inscris-toi pour créer ton compte, rejoindre les channels, et gérer tes discussions en
+              temps réel.
             </p>
           </div>
         </div>
@@ -95,7 +105,9 @@ const handleRegister = async () => {
         <div class="p-6 sm:p-10">
           <div class="mb-7 space-y-2">
             <h2 class="text-2xl font-semibold">Inscription</h2>
-            <p class="text-sm text-base-content/65">Renseigne tes informations pour créer ton compte ToGezzer.</p>
+            <p class="text-sm text-base-content/65">
+              Renseigne tes informations pour créer ton compte ToGezzer.
+            </p>
           </div>
 
           <form class="space-y-4" @submit.prevent="handleRegister">
@@ -150,7 +162,11 @@ const handleRegister = async () => {
             </label>
 
             <label class="label cursor-pointer justify-start gap-3 pt-1">
-              <input v-model="acceptTerms" type="checkbox" class="checkbox checkbox-sm checkbox-secondary" />
+              <input
+                v-model="acceptTerms"
+                type="checkbox"
+                class="checkbox checkbox-sm checkbox-secondary"
+              />
               <span class="label-text">J'accepte les conditions d'utilisation</span>
             </label>
 
@@ -166,7 +182,9 @@ const handleRegister = async () => {
 
           <p class="mt-4 text-center text-sm text-base-content/70">
             Déjà inscrit ?
-            <RouterLink class="link link-hover link-secondary font-medium" to="/login">Se connecter</RouterLink>
+            <RouterLink class="link link-hover link-secondary font-medium" to="/login"
+              >Se connecter</RouterLink
+            >
           </p>
         </div>
       </div>

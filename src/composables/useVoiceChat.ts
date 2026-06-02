@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { useVoiceChatStore } from '@/api/voiceChat/store.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 
 export interface UseVoiceChatOptions {
   autoConnect?: boolean
@@ -38,17 +38,16 @@ export function useVoiceChat(options: UseVoiceChatOptions = {}) {
   const isInitializing = ref(false)
 
   // Connect to voice chat
-  const connect = async (roomId?: string, userId?: string) => {
+  const connect = async (roomId?: string) => {
     try {
       isInitializing.value = true
       const actualRoomId = roomId || options.roomId
-      const actualUserId = userId || options.userId
 
-      if (!actualRoomId || !actualUserId) {
+      if (!actualRoomId) {
         throw new Error('Room ID and User ID are required')
       }
 
-      await voiceChatStore.connect(actualRoomId, actualUserId)
+      await voiceChatStore.connect(actualRoomId)
       await voiceChatStore.startAudio()
     } catch (error) {
       console.error('Failed to connect:', error)
@@ -118,7 +117,7 @@ export function useVoiceChat(options: UseVoiceChatOptions = {}) {
 
   // Auto-connect if requested
   if (options.autoConnect && options.roomId && options.userId) {
-    connect(options.roomId, options.userId).catch((error) => {
+    connect(options.roomId).catch((error) => {
       console.error('Auto-connect failed:', error)
     })
   }

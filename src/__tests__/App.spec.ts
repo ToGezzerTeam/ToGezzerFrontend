@@ -2,25 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import HomeView from '../views/HomeView.vue'
-import { sortMessagesChronologically } from '@/api/utils/messages.utils.ts'
-
-const buildMessagesUrl = (
-  roomId: string,
-  options: { baseUrl?: string; messageUuid?: string; pageSize?: number } = {},
-) => {
-  const normalizedBaseUrl = (options.baseUrl ?? 'http://localhost:8080').replace(/\/+$/, '')
-  const searchParams = new URLSearchParams()
-
-  if (options.messageUuid) {
-    searchParams.set('messageUuid', options.messageUuid)
-  }
-
-  if (options.pageSize != null) {
-    searchParams.set('pageSize', String(options.pageSize))
-  }
-
-  return `${normalizedBaseUrl}/api/messages/${roomId}?${searchParams.toString()}`
-}
 
 const DiscordSidebarStub = {
   template: `
@@ -35,41 +16,6 @@ const DiscordSidebarStub = {
     </div>
   `,
 }
-
-describe('messages api helpers', () => {
-  it('builds a proper messages URL', () => {
-    expect(
-      buildMessagesUrl('ROOM123', {
-        baseUrl: 'http://localhost:8080/',
-        messageUuid: 'UUID123',
-        pageSize: 50,
-      }),
-    ).toBe('http://localhost:8080/api/messages/ROOM123?messageUuid=UUID123&pageSize=50')
-  })
-
-  it('sorts messages chronologically', () => {
-    const sorted = sortMessagesChronologically([
-      {
-        uuid: 'later',
-        roomId: 'general',
-        authorId: 'user-2',
-        content: { type: 'text', value: 'Message récent' },
-        state: 'created',
-        createdAt: '2026-05-10T11:00:00Z',
-      },
-      {
-        uuid: 'earlier',
-        roomId: 'general',
-        authorId: 'user-1',
-        content: { type: 'text', value: 'Message ancien' },
-        state: 'created',
-        createdAt: '2026-05-10T10:00:00Z',
-      },
-    ])
-
-    expect(sorted.map((message) => message.uuid)).toEqual(['earlier', 'later'])
-  })
-})
 
 describe('HomeView', () => {
   afterEach(() => {

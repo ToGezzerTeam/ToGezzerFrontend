@@ -7,7 +7,10 @@ let socket: Socket | null = null
 
 const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(SOCKET_URL, { transports: ['websocket'] })
+    socket = io(SOCKET_URL, {
+      transports: ['websocket'],
+      auth: { token: localStorage.getItem('auth_token') },
+    })
   }
   return socket
 }

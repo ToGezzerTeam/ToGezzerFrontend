@@ -27,7 +27,6 @@ export class VoiceChatService {
   private localStream: MediaStream | null = null
 
   private roomId: string | null = null
-  private userId: string | null = null
 
   private listeners = new Map<string, Set<EventListener>>()
 
@@ -57,20 +56,22 @@ export class VoiceChatService {
     this.listeners.get(event)?.delete(callback as EventListener)
   }
 
-  async connect(roomId: string, userId: string): Promise<boolean> {
+  async connect(roomId: string): Promise<boolean> {
     try {
       this.roomId = roomId
-      this.userId = userId
 
       this.socket = io(`${this.wsUrl}/voice-chat`, {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: 5,
+        auth: {
+          token: localStorage.getItem('auth_token'),
+        },
       })
 
       await this.initSocketEvents()
-      await this.joinRoom(roomId, userId)
+      await this.joinRoom(roomId)
 
       return true
     } catch (error) {
@@ -120,14 +121,14 @@ export class VoiceChatService {
     })
   }
 
-  private joinRoom(roomId: string, userId: string): Promise<void> {
+  private joinRoom(roomId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const socket = this.socket
       if (!socket) return reject(new Error('Socket not initialized'))
 
       const timeout = setTimeout(() => reject(new Error('Join room timeout')), 5000)
 
-      socket.emit('joinVoiceRoom', { roomId, userId }, async (response?: any) => {
+      socket.emit('joinVoiceRoom', { roomId }, async (response?: any) => {
         clearTimeout(timeout)
 
         if (!response) return resolve()
@@ -160,7 +161,7 @@ export class VoiceChatService {
     return new Promise((resolve, reject) => {
       this.socket?.emit(
         'getRtpCapabilities',
-        { roomId: this.roomId, userId: this.userId },
+        { roomId: this.roomId },
         (res: any) => {
           if (!res?.rtpCapabilities) return reject(new Error('Invalid RTP capabilities response'))
           resolve(res.rtpCapabilities)
@@ -226,7 +227,7 @@ export class VoiceChatService {
 
     this.socket.emit(
       'createProducerTransport',
-      { roomId: this.roomId, userId: this.userId },
+      { roomId: this.roomId},
       async (response: any) => {
         if (!response?.transport) return
 
@@ -235,7 +236,7 @@ export class VoiceChatService {
         transport.on('connect', ({ dtlsParameters }, callback) => {
           this.socket?.emit(
             'connectProducerTransport',
-            { transportId: transport.id, dtlsParameters, roomId: this.roomId, userId: this.userId },
+            { transportId: transport.id, dtlsParameters, roomId: this.roomId },
             callback,
           )
         })
@@ -248,7 +249,6 @@ export class VoiceChatService {
               kind,
               rtpParameters,
               roomId: this.roomId,
-              userId: this.userId,
             },
             ({ id }: { id: string }) => callback({ id }),
           )
@@ -275,7 +275,7 @@ export class VoiceChatService {
 
     this.socket.emit(
       'createConsumerTransport',
-      { socketId, roomId: this.roomId, userId: this.userId },
+      { socketId, roomId: this.roomId },
       async (response: any) => {
         const params: TransportParams = response?.transport
         if (!params?.id) return
@@ -291,7 +291,6 @@ export class VoiceChatService {
                 dtlsParameters,
                 socketId,
                 roomId: this.roomId,
-                userId: this.userId,
               },
               callback,
             )
@@ -322,7 +321,6 @@ export class VoiceChatService {
         producerId: producer.producerId,
         socketId,
         roomId: this.roomId,
-        userId: this.userId,
       },
       async (res: ConsumeResponse) => {
         if (!res?.consumer) return
@@ -345,7 +343,6 @@ export class VoiceChatService {
             consumerId: consumer.id,
             socketId,
             roomId: this.roomId,
-            userId: this.userId,
           })
         } catch {
           // consumer creation failed silently
@@ -421,9 +418,7 @@ export class VoiceChatService {
   getRoomId(): string | null {
     return this.roomId
   }
-  getUserId(): string | null {
-    return this.userId
-  }
+
   getSocketId(): string | null {
     return this.socket?.id ?? null
   }

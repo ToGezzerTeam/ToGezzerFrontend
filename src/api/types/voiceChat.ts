@@ -3,12 +3,12 @@ import { types as mediasoupTypes } from 'mediasoup-client'
 export interface UserMediaState {
   socketId: string
   userId: string
+  username: string
   isMicMuted: boolean
   isSongMuted: boolean
 }
 
 export interface RoomUser extends UserMediaState {
-  displayName?: string
   joinedAt?: Date
   audioLevel?: number
   isCurrentUser?: boolean
@@ -31,6 +31,7 @@ export interface JoinVoiceRoomPayload {
 export interface JoinedVoiceRoomPayload {
   success: boolean
   socketId: string
+  currentUser: RoomUser
   existingUsers: RoomUser[]
   rtpCapabilities?: unknown
 }
