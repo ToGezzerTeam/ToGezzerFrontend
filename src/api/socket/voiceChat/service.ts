@@ -61,6 +61,7 @@ export class VoiceChatService {
       this.roomId = roomId
 
       this.socket = io(`${this.wsUrl}/voice-chat`, {
+        transports: ['websocket'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
