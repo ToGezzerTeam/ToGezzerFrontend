@@ -56,7 +56,7 @@ const stopMeter = () => {
 const updateVolume = () => {
   if (!analyser || !dataArray || !isMeterActive.value) return
 
-  analyser.getByteFrequencyData(dataArray)
+  analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>)
 
   let sum = 0
   for (let i = 0; i < dataArray.length; i++) {
@@ -122,4 +122,3 @@ onUnmounted(() => {
     </span>
   </div>
 </template>
-
