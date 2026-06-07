@@ -14,7 +14,8 @@ export async function login(body: LoginRequest): Promise<LoginResponse> {
       await apiClient.post('login', { json: LoginRequestSchema.parse(body) }).json(),
     )
     localStorage.setItem('auth_token', response.token)
-    localStorage.setItem('user_id', response.user.uuid)
+    localStorage.setItem('user_uuid', response.user.uuid)
+    localStorage.setItem('user_id', String(response.user.id))
     localStorage.setItem('user_name', response.user.username)
     return response
   } catch (err) {
@@ -28,7 +29,8 @@ export async function register(body: RegisterRequest): Promise<LoginResponse> {
       await apiClient.post('register', { json: RegisterRequestSchema.parse(body) }).json(),
     )
     localStorage.setItem('auth_token', response.token)
-    localStorage.setItem('user_id', response.user.uuid)
+    localStorage.setItem('user_uuid', response.user.uuid)
+    localStorage.setItem('user_id', String(response.user.id))
     localStorage.setItem('user_name', response.user.username)
     return response
   } catch (err) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onUnmounted, nextTick, computed } from 'vue'
 import {
   fetchMessagesPage,
   createMessage,
@@ -21,11 +21,26 @@ const isSending = ref(false)
 const newMessage = ref('')
 const error = ref<string | null>(null)
 const messagesEl = ref<HTMLElement | null>(null)
+const inputEl = ref<HTMLInputElement | null>(null)
 
 // Edit state
 const editingUuid = ref<string | null>(null)
 const editText = ref('')
 const isSavingEdit = ref(false)
+
+// Reply state
+const replyingTo = ref<MessageDTO | null>(null)
+
+const startReply = (msg: MessageDTO) => {
+  replyingTo.value = msg
+  nextTick(() => inputEl.value?.focus())
+}
+
+const messageMap = computed(() => {
+  const map = new Map<string, MessageDTO>()
+  for (const m of messages.value) map.set(m.uuid, m)
+  return map
+})
 
 let offMessage: (() => void) | null = null
 
@@ -55,7 +70,7 @@ const loadMore = async () => {
   isLoadingMore.value = true
   try {
     const page = await fetchMessagesPage(props.roomUuid, {
-      lastMessageUuid: messages.value[0].uuid,
+      lastMessageUuid: messages.value[0]?.uuid,
       pageSize: 50,
     })
     messages.value = [...page.messageDTOS, ...messages.value]
@@ -107,8 +122,12 @@ const send = async () => {
   isSending.value = true
   error.value = null
   try {
-    await createMessage(props.roomUuid, { message: text })
+    await createMessage(props.roomUuid, {
+      message: text,
+      answerTo: replyingTo.value?.uuid ?? null,
+    })
     newMessage.value = ''
+    replyingTo.value = null
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Impossible d'envoyer le message."
   } finally {
@@ -121,6 +140,7 @@ const onKeydown = (e: KeyboardEvent) => {
     e.preventDefault()
     send()
   }
+  if (e.key === 'Escape') replyingTo.value = null
 }
 
 // Edit
@@ -169,6 +189,12 @@ const isOwn = (msg: MessageDTO) => msg.authorId === currentUserUuid
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
+const truncate = (text: string, max = 60) => (text.length > max ? text.slice(0, max) + '…' : text)
+
+const scrollToMessage = (uuid: string) => {
+  document.getElementById(`msg-${uuid}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 </script>
 
 <template>
@@ -196,59 +222,86 @@ const formatTime = (iso: string) =>
         <div
           v-for="msg in messages"
           :key="msg.uuid"
-          class="group chat"
-          :class="isOwn(msg) ? 'chat-end' : 'chat-start'"
+          :id="`msg-${msg.uuid}`"
+          class="group chat chat-start"
         >
-          <div class="chat-header mb-0.5 text-xs opacity-60">
-            {{ msg.authorName }}
-            <time class="ml-1">{{ formatTime(msg.createdAt) }}</time>
-          </div>
-
-          <div
-            v-if="msg.state === 'deleted'"
-            class="chat-bubble chat-bubble-neutral text-sm italic opacity-50"
-          >
-            Message supprimé
-          </div>
-
-          <!-- Editing inline -->
-          <div v-else-if="editingUuid === msg.uuid" class="flex w-full max-w-sm flex-col gap-1">
-            <input
-              v-model="editText"
-              class="input input-sm input-bordered w-full"
-              :disabled="isSavingEdit"
-              @keydown="(e) => onEditKeydown(e, msg)"
-            />
-            <div class="flex justify-end gap-1 text-xs">
-              <button class="btn btn-ghost btn-xs" @click="cancelEdit">Annuler</button>
-              <button
-                class="btn btn-primary btn-xs"
-                :disabled="!editText.trim() || isSavingEdit"
-                @click="saveEdit(msg)"
-              >
-                <span v-if="isSavingEdit" class="loading loading-spinner loading-xs"></span>
-                <span v-else>Sauvegarder</span>
-              </button>
+          <div class="chat-image avatar pb-4 pr-1">
+            <div class="w-8 rounded-full">
+              <img
+                :src="`https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(msg.authorName)}`"
+                :alt="msg.authorName"
+              />
             </div>
           </div>
-
-          <template v-else>
-            <div class="chat-bubble" :class="isOwn(msg) ? 'chat-bubble-primary' : ''">
-              {{ msg.content.value }}
-              <span v-if="msg.state === 'updated'" class="ml-1 text-xs opacity-60">(modifié)</span>
+          <div>
+            <div class="chat-header mb-0.5 text-xs opacity-60">
+              {{ msg.authorName }}
+              <time class="ml-1">{{ formatTime(msg.createdAt) }}</time>
             </div>
-
-            <!-- Actions on hover (own messages only) -->
             <div
-              v-if="isOwn(msg)"
-              class="chat-footer mt-0.5 flex gap-1 opacity-100 transition-opacity group-hover:opacity-100"
+              v-if="msg.state === 'deleted'"
+              class="chat-bubble chat-bubble-neutral text-sm italic opacity-50"
             >
-              <button class="btn btn-ghost btn-xs" @click="startEdit(msg)">Modifier</button>
-              <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(msg)">
-                Supprimer
-              </button>
+              Message supprimé
             </div>
-          </template>
+
+            <!-- Editing inline -->
+            <div v-else-if="editingUuid === msg.uuid" class="flex w-full max-w-sm flex-col gap-1">
+              <input
+                v-model="editText"
+                class="input input-sm input-bordered w-full"
+                :disabled="isSavingEdit"
+                @keydown="(e) => onEditKeydown(e, msg)"
+              />
+              <div class="flex justify-end gap-1 text-xs">
+                <button class="btn btn-ghost btn-xs" @click="cancelEdit">Annuler</button>
+                <button
+                  class="btn btn-primary btn-xs"
+                  :disabled="!editText.trim() || isSavingEdit"
+                  @click="saveEdit(msg)"
+                >
+                  <span v-if="isSavingEdit" class="loading loading-spinner loading-xs"></span>
+                  <span v-else>Sauvegarder</span>
+                </button>
+              </div>
+            </div>
+
+            <template v-else>
+              <div class="chat-bubble flex flex-col gap-1.5">
+                <div
+                  v-if="msg.answerTo && messageMap.get(msg.answerTo)"
+                  class="cursor-pointer rounded border-l-2 border-current/40 bg-black/10 px-2 py-1 text-xs opacity-70 transition-opacity hover:opacity-100"
+                  @click="scrollToMessage(msg.answerTo!)"
+                >
+                  <span class="font-semibold">{{ messageMap.get(msg.answerTo)!.authorName }}</span>
+                  <span class="ml-1">{{
+                    truncate(messageMap.get(msg.answerTo)!.content.value)
+                  }}</span>
+                </div>
+                <span>
+                  {{ msg.content.value }}
+                  <span v-if="msg.state === 'updated'" class="ml-1 text-xs opacity-60"
+                    >(modifié)</span
+                  >
+                </span>
+              </div>
+
+              <!-- Actions on hover -->
+              <div
+                class="chat-footer mt-0.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                <button class="btn btn-ghost btn-xs" title="Répondre" @click="startReply(msg)">
+                  ↩
+                </button>
+                <template v-if="isOwn(msg)">
+                  <button class="btn btn-ghost btn-xs" @click="startEdit(msg)">Modifier</button>
+                  <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(msg)">
+                    Supprimer
+                  </button>
+                </template>
+              </div>
+            </template>
+          </div>
         </div>
       </template>
     </div>
@@ -258,12 +311,26 @@ const formatTime = (iso: string) =>
         <span>{{ error }}</span>
         <button class="btn btn-ghost btn-xs" @click="error = null">✕</button>
       </div>
+
+      <!-- Reply preview -->
+      <div
+        v-if="replyingTo"
+        class="mb-2 flex items-center gap-2 rounded border-l-2 border-primary bg-base-200 px-3 py-1.5 text-sm"
+      >
+        <span class="flex-1 text-base-content/70">
+          <span class="font-semibold text-base-content">{{ replyingTo.authorName }}</span>
+          <span class="ml-1">{{ truncate(replyingTo.content.value) }}</span>
+        </span>
+        <button class="btn btn-ghost btn-xs" @click="replyingTo = null">✕</button>
+      </div>
+
       <div class="flex gap-2">
         <input
+          ref="inputEl"
           v-model="newMessage"
           type="text"
           class="input flex-1"
-          placeholder="Écrire un message..."
+          :placeholder="replyingTo ? `Répondre à ${replyingTo.authorName}…` : 'Écrire un message…'"
           :disabled="isSending"
           @keydown="onKeydown"
         />
