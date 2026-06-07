@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { getMyServers, joinServer } from '@/api/route/server.ts'
+import { getMyServers, joinServer, createServer } from '@/api/route/server.ts'
 import type { ServerDTO } from '@/api/types/server.ts'
 import { Plus } from '@lucide/vue'
 
@@ -10,12 +10,17 @@ const isLoading = ref(true)
 const route = useRoute()
 
 const modalRef = ref<HTMLDialogElement | null>(null)
+const activeTab = ref<'join' | 'create'>('join')
+
 const serverUuidInput = ref('')
 const isJoining = ref(false)
 const joinError = ref<string | null>(null)
 
-const isActive = (uuid: string | null | undefined) =>
-  !!uuid && route.params.serverUuid === uuid
+const serverNameInput = ref('')
+const isCreating = ref(false)
+const createError = ref<string | null>(null)
+
+const isActive = (uuid: string | null | undefined) => !!uuid && route.params.serverUuid === uuid
 
 const loadServers = async () => {
   try {
@@ -26,8 +31,11 @@ const loadServers = async () => {
 }
 
 const openModal = () => {
+  activeTab.value = 'join'
   serverUuidInput.value = ''
   joinError.value = null
+  serverNameInput.value = ''
+  createError.value = null
   modalRef.value?.showModal()
 }
 
@@ -47,17 +55,42 @@ const submitJoin = async () => {
   }
 }
 
+const submitCreate = async () => {
+  const name = serverNameInput.value.trim()
+  if (!name || isCreating.value) return
+  isCreating.value = true
+  createError.value = null
+  try {
+    const server = await createServer({
+      name,
+      logo: '',
+      background: '',
+      public: false,
+      createdBy: localStorage.getItem('user_name') ?? '',
+    })
+    if (server.uuid) await joinServer(server.uuid)
+    await loadServers()
+    modalRef.value?.close()
+  } catch (err) {
+    createError.value = err instanceof Error ? err.message : 'Erreur lors de la création.'
+  } finally {
+    isCreating.value = false
+  }
+}
+
 const onKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter') submitJoin()
+  if (e.key !== 'Enter') return
+  if (activeTab.value === 'join') submitJoin()
+  else submitCreate()
 }
 
 onMounted(loadServers)
 </script>
 
 <template>
-  <nav class="flex h-screen w-[72px] flex-col items-center bg-base-300 py-3">
+  <nav class="flex h-screen w-[72px] flex-col items-center overflow-hidden bg-base-300 py-3">
     <!-- Server list -->
-    <div class="flex flex-1 flex-col items-center gap-2 overflow-y-auto">
+    <div class="flex flex-1 flex-col items-center gap-2">
       <div v-if="isLoading" class="mt-4">
         <span class="loading loading-spinner loading-sm text-base-content/40"></span>
       </div>
@@ -106,38 +139,87 @@ onMounted(loadServers)
     </div>
   </nav>
 
-  <!-- Join server modal -->
+  <!-- Join/Create server modal -->
   <dialog ref="modalRef" class="modal">
     <div class="modal-box">
-      <h3 class="mb-1 text-lg font-bold">Rejoindre un serveur</h3>
-      <p class="mb-4 text-sm text-base-content/60">Entre l'UUID du serveur pour le rejoindre.</p>
+      <h3 class="mb-4 text-lg font-bold">Ajouter un serveur</h3>
 
-      <div v-if="joinError" role="alert" class="alert alert-error alert-soft mb-3 py-2 text-sm">
-        <span>{{ joinError }}</span>
-      </div>
-
-      <input
-        v-model="serverUuidInput"
-        type="text"
-        class="input input-bordered w-full font-mono"
-        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        :disabled="isJoining"
-        @keydown="onKeydown"
-      />
-
-      <div class="modal-action">
-        <form method="dialog">
-          <button class="btn btn-ghost" :disabled="isJoining">Annuler</button>
-        </form>
+      <div class="tabs tabs-box mb-4 w-full">
         <button
-          class="btn btn-primary"
-          :disabled="!serverUuidInput.trim() || isJoining"
-          @click="submitJoin"
+          class="tab flex-1"
+          :class="activeTab === 'join' ? 'tab-active' : ''"
+          type="button"
+          @click="activeTab = 'join'"
         >
-          <span v-if="isJoining" class="loading loading-spinner loading-sm"></span>
-          <span v-else>Rejoindre</span>
+          Rejoindre
+        </button>
+        <button
+          class="tab flex-1"
+          :class="activeTab === 'create' ? 'tab-active' : ''"
+          type="button"
+          @click="activeTab = 'create'"
+        >
+          Créer
         </button>
       </div>
+
+      <!-- Join tab -->
+      <template v-if="activeTab === 'join'">
+        <p class="mb-4 text-sm text-base-content/60">Entre l'UUID du serveur pour le rejoindre.</p>
+        <div v-if="joinError" role="alert" class="alert alert-error alert-soft mb-3 py-2 text-sm">
+          <span>{{ joinError }}</span>
+        </div>
+        <input
+          v-model="serverUuidInput"
+          type="text"
+          class="input input-bordered w-full font-mono"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          :disabled="isJoining"
+          @keydown="onKeydown"
+        />
+        <div class="modal-action">
+          <form method="dialog">
+            <button class="btn btn-ghost" :disabled="isJoining">Annuler</button>
+          </form>
+          <button
+            class="btn btn-primary"
+            :disabled="!serverUuidInput.trim() || isJoining"
+            @click="submitJoin"
+          >
+            <span v-if="isJoining" class="loading loading-spinner loading-sm"></span>
+            <span v-else>Rejoindre</span>
+          </button>
+        </div>
+      </template>
+
+      <!-- Create tab -->
+      <template v-else>
+        <p class="mb-4 text-sm text-base-content/60">Choisis un nom pour ton nouveau serveur.</p>
+        <div v-if="createError" role="alert" class="alert alert-error alert-soft mb-3 py-2 text-sm">
+          <span>{{ createError }}</span>
+        </div>
+        <input
+          v-model="serverNameInput"
+          type="text"
+          class="input input-bordered w-full"
+          placeholder="Mon super serveur"
+          :disabled="isCreating"
+          @keydown="onKeydown"
+        />
+        <div class="modal-action">
+          <form method="dialog">
+            <button class="btn btn-ghost" :disabled="isCreating">Annuler</button>
+          </form>
+          <button
+            class="btn btn-primary"
+            :disabled="!serverNameInput.trim() || isCreating"
+            @click="submitCreate"
+          >
+            <span v-if="isCreating" class="loading loading-spinner loading-sm"></span>
+            <span v-else>Créer</span>
+          </button>
+        </div>
+      </template>
     </div>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>

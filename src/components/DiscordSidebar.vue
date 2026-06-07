@@ -13,7 +13,15 @@ import {
   HeadphoneOff,
   PhoneOff,
   Settings,
+  UserPlus,
 } from '@lucide/vue'
+
+const copied = ref(false)
+const copyInvite = async () => {
+  await navigator.clipboard.writeText(props.serverUuid)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
 
 const username = localStorage.getItem('user_name') ?? 'user'
 const avatarUrl = `https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(username)}`
@@ -29,6 +37,7 @@ export type ChannelItem = {
 const props = defineProps<{
   serverUuid: string
   serverId: number | null | undefined
+  serverName: string | null
   channels: ChannelItem[]
   isLoading: boolean
   loadError: string | null
@@ -94,8 +103,15 @@ const connectedChannel = computed(() =>
 <template>
   <aside class="flex h-screen w-60 flex-col border-r border-base-300 bg-base-200">
     <div class="navbar min-h-14 bg-base-300 px-4">
-      <div class="navbar-start">
-        <span class="font-semibold">ToGezzer</span>
+      <div class="navbar-start min-w-0 flex-1">
+        <span class="truncate font-semibold">{{ serverName ?? 'ToGezzer' }}</span>
+      </div>
+      <div class="navbar-end">
+        <div class="tooltip tooltip-bottom" :data-tip="copied ? 'Copié !' : 'Inviter'">
+          <button class="btn btn-ghost btn-sm btn-circle" type="button" @click="copyInvite">
+            <UserPlus :size="16" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -111,7 +127,7 @@ const connectedChannel = computed(() =>
 
       <ul v-else class="menu menu-sm w-full gap-1">
         <template v-if="textChannels.length > 0 || serverId != null">
-          <li class="flex flex-row items-center justify-between px-2 py-1">
+          <div class="flex flex-row items-center justify-between px-2 py-1">
             <span class="text-xs font-bold uppercase tracking-wide text-base-content/60">
               Salons texte
             </span>
@@ -121,9 +137,9 @@ const connectedChannel = computed(() =>
               title="Ajouter un salon"
               @click="openModal"
             >
-              <Plus :size="14" />
+              <Plus :size="18" />
             </button>
-          </li>
+          </div>
           <li v-for="channel in textChannels" :key="channel.uuid">
             <RouterLink
               :to="{

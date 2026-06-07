@@ -7,7 +7,7 @@ import type { ChannelItem } from '@/components/DiscordSidebar.vue'
 import TextChat from '@/components/TextChat.vue'
 import VoiceChat from '@/components/VoiceChat.vue'
 import { Hash, Volume2, ChevronLeft, ChevronRight } from '@lucide/vue'
-import { getServerDetail } from '@/api/route/server.ts'
+import { getServerDetail, getServer } from '@/api/route/server.ts'
 import { joinRoom } from '@/api/route/room.ts'
 import type { RoomDTO } from '@/api/types/room.ts'
 
@@ -15,6 +15,7 @@ const route = useRoute()
 const isSidebarOpen = ref(true)
 const channels = ref<ChannelItem[]>([])
 const serverId = ref<number | null>(null)
+const serverName = ref<string | null>(null)
 const isLoadingChannels = ref(false)
 const loadChannelsError = ref<string | null>(null)
 
@@ -36,8 +37,9 @@ const loadServerDetail = async (uuid: string) => {
   isLoadingChannels.value = true
   loadChannelsError.value = null
   try {
-    const detail = await getServerDetail(uuid)
+    const [detail, server] = await Promise.all([getServerDetail(uuid), getServer(uuid)])
     serverId.value = detail.serverId ?? null
+    serverName.value = server.name
     channels.value = (detail.roomDTOS ?? [])
       .filter((r): r is RoomDTO & { uuid: string; name: string } => !!r.uuid && !!r.name)
       .map((r) => ({
@@ -49,6 +51,7 @@ const loadServerDetail = async (uuid: string) => {
     loadChannelsError.value = err instanceof Error ? err.message : 'Erreur inconnue.'
     channels.value = []
     serverId.value = null
+    serverName.value = null
   } finally {
     isLoadingChannels.value = false
   }
@@ -82,6 +85,7 @@ watch(
       v-if="isSidebarOpen && serverUuid"
       :server-uuid="serverUuid"
       :server-id="serverId"
+      :server-name="serverName"
       :channels="channels"
       :is-loading="isLoadingChannels"
       :load-error="loadChannelsError"
