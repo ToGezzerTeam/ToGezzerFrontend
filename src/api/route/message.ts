@@ -9,8 +9,7 @@ import {
 import { API_BASE_URL, apiClient, handleHttpError } from '@/api/client.ts'
 import { z } from 'zod'
 
-const messageApi = apiClient.extend({ prefix:`${API_BASE_URL}/api/messages` })
-
+const messageApi = apiClient.extend({ prefix: `${API_BASE_URL}/api/messages` })
 
 export async function fetchMessagesPage(
   roomUuid: string,
@@ -35,6 +34,7 @@ export async function fetchMessagesPage(
         },
       })
       .json()
+    console.log('data', data)
 
     return MessagesPageResponseDtoSchema.parse(data)
   } catch (err) {
@@ -87,16 +87,15 @@ export async function uploadFile(roomUuid: string, file: File | Blob): Promise<v
   }
 }
 
-export async function getFileUrl(
-  roomUuid: string,
-  objectName: string,
-): Promise<string> {
+export async function getFileUrl(roomUuid: string, objectName: string): Promise<string> {
   try {
-    return z.string().parse(
-      await apiClient
-        .get(`messages/${encodeURIComponent(roomUuid)}/files/${encodeURIComponent(objectName)}`)
-        .json(),
-    )
+    return z
+      .string()
+      .parse(
+        await apiClient
+          .get(`messages/${encodeURIComponent(roomUuid)}/files/${encodeURIComponent(objectName)}`)
+          .json(),
+      )
   } catch (err) {
     return handleHttpError(err, `Impossible de charger le fichier "${objectName}"`)
   }

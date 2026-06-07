@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import { Mic, MicOff, Headphones, HeadphoneOff } from '@lucide/vue'
 
 const voiceChatStore = useVoiceChatStore()
 </script>
@@ -20,11 +21,12 @@ const voiceChatStore = useVoiceChatStore()
           class="list-row gap-3 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors"
         >
           <!-- User Avatar with Status -->
-          <div class="avatar placeholder">
-            <div class="bg-primary text-primary-content rounded-full w-10">
-              <span class="text-sm font-bold">
-                {{ user.userId.charAt(0).toUpperCase() }}
-              </span>
+          <div class="avatar">
+            <div class="rounded-full w-10">
+              <img
+                :src="`https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(user.username)}`"
+                :alt="user.username"
+              />
             </div>
           </div>
 
@@ -41,25 +43,20 @@ const voiceChatStore = useVoiceChatStore()
             <!-- Mic Status -->
             <div
               class="badge"
-              :class="{
-                'badge-error': user.isMicMuted,
-                'badge-success': !user.isMicMuted,
-              }"
-              :title="user.isMicMuted ? 'Microphone muted' : 'Microphone active'"
+              :class="user.isMicMuted ? 'badge-error' : 'badge-success'"
+              :title="user.isMicMuted ? 'Micro coupé' : 'Micro actif'"
             >
-              {{ user.isMicMuted ? '🔇' : '🎤' }}
+              <MicOff v-if="user.isMicMuted" :size="12" />
+              <Mic v-else :size="12" />
             </div>
 
-            <!-- Song Status -->
             <div
               class="badge"
-              :class="{
-                'badge-error': user.isSongMuted,
-                'badge-success': !user.isSongMuted,
-              }"
-              :title="user.isSongMuted ? 'Song disabled' : 'Song enabled'"
+              :class="user.isSongMuted ? 'badge-error' : 'badge-success'"
+              :title="user.isSongMuted ? 'Son coupé' : 'Son actif'"
             >
-              {{ user.isSongMuted ? '🔕' : '🎵' }}
+              <HeadphoneOff v-if="user.isSongMuted" :size="12" />
+              <Headphones v-else :size="12" />
             </div>
           </div>
         </li>

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import VoiceChatView from '../views/VoiceChatView.vue'
+import SettingsView from '../views/SettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,9 +12,14 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/channel/:channelId',
+      path: '/server/:serverUuid',
+      name: 'server',
+      component: HomeView,
+    },
+    {
+      path: '/server/:serverUuid/channel/:channelUuid',
       name: 'channel',
-      component: () => import('../views/HomeView.vue'),
+      component: HomeView,
     },
     {
       path: '/login',
@@ -37,6 +43,11 @@ const router = createRouter({
       path: '/voice-chat',
       name: 'voiceChat',
       component: VoiceChatView,
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
     },
     {
       path: '/api-test',

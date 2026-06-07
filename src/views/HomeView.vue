@@ -1,201 +1,164 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
-// import { fetchMessagesPage, joinRoom, leaveRoom, onMessage } from '@/api/messages'
-// import type { MessageDTO, MessagesPageResponseDto } from '@/api/messages'
-// import { sortMessagesChronologically } from '@/api/utils/messages.utils.ts'
-
-type ChannelKind = 'text' | 'voice'
-
-type ChannelItem = {
-  id: string
-  name: string
-  type: ChannelKind
-  order?: number
-}
-
-type ChannelFolder = {
-  id: string
-  name: string
-  type: 'folder'
-  order?: number
-  children: ChannelItem[]
-}
-
-type SidebarNode = ChannelItem | ChannelFolder
-
-type ChannelLayout = {
-  items: SidebarNode[]
-}
+import type { ChannelItem } from '@/components/DiscordSidebar.vue'
+import TextChat from '@/components/TextChat.vue'
+import VoiceChat from '@/components/VoiceChat.vue'
+import { Hash, Volume2, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { getServerDetail, getServer } from '@/api/route/server.ts'
+import { joinRoom } from '@/api/route/room.ts'
+import type { RoomDTO } from '@/api/types/room.ts'
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
-const layout = ref<ChannelLayout | null>(null)
-const isLoading = ref(true)
-const loadError = ref<string | null>(null)
+const channels = ref<ChannelItem[]>([])
+const serverId = ref<number | null>(null)
+const serverName = ref<string | null>(null)
+const isLoadingChannels = ref(false)
+const loadChannelsError = ref<string | null>(null)
 
-const isFolder = (node: SidebarNode): node is ChannelFolder => node.type === 'folder'
-
-const sortByOrder = <T extends { order?: number; name: string }>(items: T[]) => {
-  return [...items].sort((a, b) => {
-    const orderA = a.order ?? Number.MAX_SAFE_INTEGER
-    const orderB = b.order ?? Number.MAX_SAFE_INTEGER
-
-    if (orderA !== orderB) {
-      return orderA - orderB
-    }
-
-    return a.name.localeCompare(b.name, 'fr')
-  })
-}
-
-const sortedItems = computed(() => {
-  if (!layout.value) {
-    return []
-  }
-
-  return sortByOrder(layout.value.items).map((node) => {
-    if (isFolder(node)) {
-      return {
-        ...node,
-        children: sortByOrder(node.children),
-      }
-    }
-
-    return node
-  })
+const serverUuid = computed(() => {
+  const v = route.params.serverUuid
+  return typeof v === 'string' ? v : undefined
 })
 
-const channels = computed(() => {
-  const result: ChannelItem[] = []
-
-  for (const node of sortedItems.value) {
-    if (node.type === 'folder') {
-      result.push(...node.children)
-    } else {
-      result.push(node)
-    }
-  }
-
-  return result
+const channelUuid = computed(() => {
+  const v = route.params.channelUuid
+  return typeof v === 'string' ? v : undefined
 })
 
-const selectedChannelId = computed(() => {
-  const { channelId } = route.params
-  return typeof channelId === 'string' ? channelId : undefined
-})
+const selectedChannel = computed(() =>
+  channelUuid.value ? (channels.value.find((c) => c.uuid === channelUuid.value) ?? null) : null,
+)
 
-const selectedChannel = computed(() => {
-  if (!selectedChannelId.value) {
-    return null
-  }
-
-  return channels.value.find((channel) => channel.id === selectedChannelId.value) ?? null
-})
-
-const selectedFolderName = computed(() => {
-  if (!selectedChannelId.value) {
-    return null
-  }
-
-  for (const node of sortedItems.value) {
-    if (node.type === 'folder' && node.children.some((channel) => channel.id === selectedChannelId.value)) {
-      return node.name
-    }
-  }
-
-  return null
-})
-
-const channelPrefix = (kind: ChannelKind) => {
-  return kind === 'text' ? '#' : '🔊'
-}
-
-const hasUnknownChannel = computed(() => {
-  return Boolean(selectedChannelId.value) && !selectedChannel.value
-})
-
-const toggleSidebar = () => {
-  isSidebarOpen.value = !isSidebarOpen.value
-}
-
-onMounted(async () => {
+const loadServerDetail = async (uuid: string) => {
+  isLoadingChannels.value = true
+  loadChannelsError.value = null
   try {
-    const response = await fetch('/channel-layout.json')
-
-    if (!response.ok) {
-      throw new Error('Impossible de charger la configuration des salons.')
-    }
-
-    const data = (await response.json()) as ChannelLayout
-
-    if (!Array.isArray(data.items)) {
-      throw new Error('Le JSON de configuration est invalide.')
-    }
-
-    layout.value = data
-  } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Erreur inconnue.'
+    const [detail, server] = await Promise.all([getServerDetail(uuid), getServer(uuid)])
+    serverId.value = detail.serverId ?? null
+    serverName.value = server.name
+    channels.value = (detail.roomDTOS ?? [])
+      .filter((r): r is RoomDTO & { uuid: string; name: string } => !!r.uuid && !!r.name)
+      .map((r) => ({
+        uuid: r.uuid!,
+        name: r.name!,
+        type: r.channelType === 'TEXT' ? 'text' : 'voice',
+      }))
+  } catch (err) {
+    loadChannelsError.value = err instanceof Error ? err.message : 'Erreur inconnue.'
+    channels.value = []
+    serverId.value = null
+    serverName.value = null
   } finally {
-    isLoading.value = false
+    isLoadingChannels.value = false
   }
+}
+
+watch(channelUuid, (uuid) => {
+  if (uuid) joinRoom(uuid).catch(() => {})
 })
+
+watch(
+  serverUuid,
+  (uuid) => {
+    if (!uuid) {
+      channels.value = []
+      serverId.value = null
+      return
+    }
+    loadServerDetail(uuid)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-base-100">
-    <DiscordSidebar v-if="isSidebarOpen" />
+  <div class="flex h-screen bg-base-100">
+    <!-- Server list column -->
+    <ServerList />
 
-    <main class="flex-1 bg-base-100 p-6">
-      <div class="mx-auto flex max-w-3xl flex-col gap-4">
+    <!-- Channel sidebar -->
+    <DiscordSidebar
+      v-if="isSidebarOpen && serverUuid"
+      :server-uuid="serverUuid"
+      :server-id="serverId"
+      :server-name="serverName"
+      :channels="channels"
+      :is-loading="isLoadingChannels"
+      :load-error="loadChannelsError"
+      @channel-created="loadServerDetail(serverUuid!)"
+    />
+
+    <!-- Text channel -->
+    <template v-if="selectedChannel?.type === 'text'">
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
+          <div class="navbar-start gap-2">
+            <Hash :size="16" class="text-base-content/60" />
+            <span class="font-semibold">{{ selectedChannel.name }}</span>
+          </div>
+          <div class="navbar-end">
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              @click="isSidebarOpen = !isSidebarOpen"
+            >
+              <ChevronLeft v-if="isSidebarOpen" :size="16" />
+              <ChevronRight v-else :size="16" />
+            </button>
+          </div>
+        </div>
+        <TextChat :room-uuid="selectedChannel.uuid" class="flex-1 overflow-hidden" />
+      </div>
+    </template>
+
+    <!-- Voice channel -->
+    <template v-else-if="selectedChannel?.type === 'voice'">
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
+          <div class="navbar-start gap-2">
+            <Volume2 :size="16" class="text-base-content/60" />
+            <span class="font-semibold">{{ selectedChannel.name }}</span>
+          </div>
+          <div class="navbar-end">
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              @click="isSidebarOpen = !isSidebarOpen"
+            >
+              <ChevronLeft v-if="isSidebarOpen" :size="16" />
+              <ChevronRight v-else :size="16" />
+            </button>
+          </div>
+        </div>
+        <VoiceChat :room-id="selectedChannel.uuid" class="flex-1 overflow-hidden" />
+      </div>
+    </template>
+
+    <!-- Other states -->
+    <main v-else class="flex flex-1 flex-col overflow-y-auto p-6">
+      <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
-          <h1 class="text-2xl font-bold">{{ selectedChannel ? selectedChannel.name : 'Espace principal' }}</h1>
-          <button class="btn btn-sm btn-outline" type="button" @click="toggleSidebar">
+          <h1 class="text-2xl font-bold">Bienvenue sur ToGezzer</h1>
+          <button
+            v-if="serverUuid"
+            class="btn btn-outline btn-sm"
+            type="button"
+            @click="isSidebarOpen = !isSidebarOpen"
+          >
             {{ isSidebarOpen ? 'Masquer la sidebar' : 'Afficher la sidebar' }}
           </button>
         </div>
-
-        <div v-if="isLoading" class="flex items-center gap-2 text-base-content/70">
-          <span class="loading loading-dots loading-sm"></span>
-          Chargement du channel...
-        </div>
-
-        <div v-else-if="loadError" role="alert" class="alert alert-error alert-soft">
-          <span>{{ loadError }}</span>
-        </div>
-
-        <div v-else-if="hasUnknownChannel" role="alert" class="alert alert-warning alert-soft">
-          <span>Le channel "{{ selectedChannelId }}" n'existe pas dans la configuration.</span>
-        </div>
-
-        <template v-else-if="selectedChannel">
-          <p class="text-base-content/70">
-            Channel actif: {{ channelPrefix(selectedChannel.type) }}{{ selectedChannel.name }}
-          </p>
-
-          <div class="card border border-base-300 bg-base-200/50">
-            <div class="card-body gap-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="badge badge-neutral">{{ selectedChannel.type === 'text' ? 'Texte' : 'Vocal' }}</span>
-                <span v-if="selectedFolderName" class="badge badge-outline">{{ selectedFolderName }}</span>
-              </div>
-              <p class="text-base-content/80">
-                Cette page est dynamique: l'URL détermine le channel affiché et les données viennent de
-                public/channel-layout.json.
-              </p>
-              <div class="text-sm text-base-content/60">Identifiant: {{ selectedChannel.id }}</div>
-            </div>
-          </div>
+        <template v-if="!serverUuid">
+          <p class="text-base-content/70">Sélectionne un serveur dans la barre de gauche.</p>
         </template>
-
         <template v-else>
           <p class="text-base-content/70">
-            Sélectionne un channel dans la sidebar pour afficher sa page dynamique.
+            Sélectionne un channel dans la sidebar pour afficher sa page.
           </p>
-          <div class="alert alert-info alert-soft">
-            <span>Modifie public/channel-layout.json pour changer l'ordre, les dossiers et les salons.</span>
-          </div>
         </template>
       </div>
     </main>

@@ -10,10 +10,8 @@ import type {
   ErrorPayload,
 } from '@/api/types/voiceChat.ts'
 
-
 export const useVoiceChatStore = defineStore('voiceChat', () => {
   const voiceService = getVoiceChatService()
-
 
   const isConnected = ref(false)
   const isConnecting = ref(false)
@@ -59,8 +57,6 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
 
       currentRoomId.value = roomId
       isConnected.value = true
-
-
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       isConnected.value = false

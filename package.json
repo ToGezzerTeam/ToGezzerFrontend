@@ -20,6 +20,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@lucide/vue": "^1.17.0",
     "@tailwindcss/vite": "^4.1.18",
     "ky": "^2.0.2",
     "mediasoup-client": "^3.20.0",
