@@ -11,9 +11,14 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/channel/:channelId',
+      path: '/server/:serverUuid',
+      name: 'server',
+      component: HomeView,
+    },
+    {
+      path: '/server/:serverUuid/channel/:channelUuid',
       name: 'channel',
-      component: () => import('../views/HomeView.vue'),
+      component: HomeView,
     },
     {
       path: '/login',

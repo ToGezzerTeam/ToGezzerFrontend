@@ -7,6 +7,7 @@ import {
   ServerDTOSchema,
 } from '@/api/types/server.ts'
 import { API_BASE_URL, apiClient, handleHttpError } from '@/api/client.ts'
+import { z } from 'zod'
 
 
 const serverApi = apiClient.extend({ prefix: `${API_BASE_URL}/api/servers` })
@@ -53,5 +54,13 @@ export async function renameServer(serverUuid: string, body: RenameServerDTO): P
     await serverApi.patch(`${encodeURIComponent(serverUuid)}/rename`, { json: body })
   } catch (err) {
     return handleHttpError(err, `Impossible de renommer le serveur "${serverUuid}"`)
+  }
+}
+
+export async function getMyServers(): Promise<ServerDTO[]> {
+  try {
+    return z.array(ServerDTOSchema).parse(await apiClient.get('users/servers').json())
+  } catch (err) {
+    return handleHttpError(err, 'Impossible de charger vos serveurs')
   }
 }
