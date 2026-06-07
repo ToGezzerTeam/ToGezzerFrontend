@@ -3,7 +3,20 @@ import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createRoom, joinRoom } from '@/api/route/room.ts'
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
-import { Hash, Volume2, Plus, Mic, MicOff, Headphones, HeadphoneOff, PhoneOff } from '@lucide/vue'
+import {
+  Hash,
+  Volume2,
+  Plus,
+  Mic,
+  MicOff,
+  Headphones,
+  HeadphoneOff,
+  PhoneOff,
+  Settings,
+} from '@lucide/vue'
+
+const username = localStorage.getItem('user_name') ?? 'user'
+const avatarUrl = `https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(username)}`
 
 type ChannelKind = 'text' | 'voice'
 
@@ -161,18 +174,32 @@ const connectedChannel = computed(() =>
       </ul>
     </div>
     <!-- Voice status bar -->
-    <div v-if="connectedChannel" class="border-t border-base-300 bg-base-300/60 px-3 py-2">
-      <div class="mb-1.5 flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-full bg-success"></span>
-        <span class="text-xs font-semibold text-success">Vocal connecté</span>
+    <div class="border-t border-base-300 bg-base-300/60 px-3 py-2">
+      <div class="mb-1 flex items-center gap-1.5">
+        <span
+          class="h-2 w-2 rounded-full"
+          :class="connectedChannel ? 'bg-success' : 'bg-base-content/30'"
+        ></span>
+        <span
+          class="text-xs font-semibold"
+          :class="connectedChannel ? 'text-success' : 'text-base-content/50'"
+        >
+          {{ connectedChannel ? 'Vocal connecté' : 'Vocal déconnecté' }}
+        </span>
       </div>
       <p class="mb-2 flex items-center gap-1.5 truncate text-xs text-base-content/70">
-        <Volume2 :size="13" />{{ connectedChannel.name }}
+        <Volume2 :size="13" />{{ connectedChannel ? connectedChannel.name : '—' }}
       </p>
-      <div class="flex gap-1">
+      <div class="flex items-center gap-1">
+        <img :src="avatarUrl" :alt="username" class="h-7 w-7 rounded-full bg-base-300" />
+        <div class="flex-1" />
         <button
           class="btn btn-ghost btn-xs btn-circle"
-          :class="voiceStore.isMicMuted ? 'text-error' : ''"
+          :class="[
+            voiceStore.isMicMuted ? 'text-error' : '',
+            !connectedChannel ? 'opacity-30' : '',
+          ]"
+          :disabled="!connectedChannel"
           :title="voiceStore.isMicMuted ? 'Activer le micro' : 'Couper le micro'"
           @click="voiceStore.toggleMic"
         >
@@ -181,7 +208,11 @@ const connectedChannel = computed(() =>
         </button>
         <button
           class="btn btn-ghost btn-xs btn-circle"
-          :class="voiceStore.isSongMuted ? 'text-error' : ''"
+          :class="[
+            voiceStore.isSongMuted ? 'text-error' : '',
+            !connectedChannel ? 'opacity-30' : '',
+          ]"
+          :disabled="!connectedChannel"
           :title="voiceStore.isSongMuted ? 'Activer le son' : 'Couper le son'"
           @click="voiceStore.toggleSong"
         >
@@ -190,11 +221,20 @@ const connectedChannel = computed(() =>
         </button>
         <button
           class="btn btn-ghost btn-xs btn-circle text-error"
+          :class="!connectedChannel ? 'opacity-30' : ''"
+          :disabled="!connectedChannel"
           title="Quitter le salon vocal"
           @click="voiceStore.disconnect"
         >
           <PhoneOff :size="14" />
         </button>
+        <RouterLink
+          :to="{ name: 'settings' }"
+          class="btn btn-ghost btn-xs btn-circle"
+          title="Paramètres"
+        >
+          <Settings :size="14" />
+        </RouterLink>
       </div>
     </div>
   </aside>
