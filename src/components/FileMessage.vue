@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getFileUrl } from '@/api/route/message.ts'
+import { Paperclip } from '@lucide/vue'
 
 const props = defineProps<{ roomUuid: string; objectName: string }>()
 
@@ -43,7 +44,7 @@ const openInTab = () => url.value && window.open(url.value, '_blank')
       rel="noopener noreferrer"
       class="btn btn-ghost btn-sm gap-1 font-normal"
     >
-      📎 {{ fileName }}
+      <Paperclip :size="14" />{{ fileName }}
     </a>
   </template>
 </template>

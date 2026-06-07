@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import { Mic, MicOff, Headphones, HeadphoneOff } from '@lucide/vue'
 
 const voiceChatStore = useVoiceChatStore()
 </script>
@@ -41,25 +42,20 @@ const voiceChatStore = useVoiceChatStore()
             <!-- Mic Status -->
             <div
               class="badge"
-              :class="{
-                'badge-error': user.isMicMuted,
-                'badge-success': !user.isMicMuted,
-              }"
-              :title="user.isMicMuted ? 'Microphone muted' : 'Microphone active'"
+              :class="user.isMicMuted ? 'badge-error' : 'badge-success'"
+              :title="user.isMicMuted ? 'Micro coupé' : 'Micro actif'"
             >
-              {{ user.isMicMuted ? '🔇' : '🎤' }}
+              <MicOff v-if="user.isMicMuted" :size="12" />
+              <Mic v-else :size="12" />
             </div>
 
-            <!-- Song Status -->
             <div
               class="badge"
-              :class="{
-                'badge-error': user.isSongMuted,
-                'badge-success': !user.isSongMuted,
-              }"
-              :title="user.isSongMuted ? 'Song disabled' : 'Song enabled'"
+              :class="user.isSongMuted ? 'badge-error' : 'badge-success'"
+              :title="user.isSongMuted ? 'Son coupé' : 'Son actif'"
             >
-              {{ user.isSongMuted ? '🔕' : '🎵' }}
+              <HeadphoneOff v-if="user.isSongMuted" :size="12" />
+              <Headphones v-else :size="12" />
             </div>
           </div>
         </li>

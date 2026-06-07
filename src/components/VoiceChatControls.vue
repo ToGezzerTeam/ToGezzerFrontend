@@ -1,18 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import { Mic, MicOff, Headphones, HeadphoneOff, PhoneOff } from '@lucide/vue'
 
-const voiceChatStore = useVoiceChatStore();
-
-const micIcon = computed(() => {
-  return voiceChatStore.isMicMuted ? '🔇' : '🎤';
-});
-
-const songIcon = computed(() => {
-  return voiceChatStore.isSongMuted ? '🔕' : '🎵';
-});
-
-const disconnectIcon = '📴';
+const voiceChatStore = useVoiceChatStore()
 </script>
 
 <template>
@@ -20,59 +10,45 @@ const disconnectIcon = '📴';
     <div class="card-body">
       <p class="text-sm text-base-content/60 mb-4">Audio Controls</p>
       <div class="flex gap-3 justify-center flex-wrap">
-        <!-- Mic Toggle Button -->
         <button
           @click="voiceChatStore.toggleMic"
           :disabled="!voiceChatStore.isConnected"
-          :class="{
-            'btn-error': voiceChatStore.isMicMuted,
-            'btn-primary': !voiceChatStore.isMicMuted,
-          }"
+          :class="voiceChatStore.isMicMuted ? 'btn-error' : 'btn-primary'"
           class="btn btn-lg btn-circle"
-          :title="`Microphone ${voiceChatStore.isMicMuted ? 'muted' : 'active'}`"
+          :title="voiceChatStore.isMicMuted ? 'Activer le micro' : 'Couper le micro'"
         >
-          {{ micIcon }}
+          <MicOff v-if="voiceChatStore.isMicMuted" :size="22" />
+          <Mic v-else :size="22" />
         </button>
 
-        <!-- Song Toggle Button -->
         <button
           @click="voiceChatStore.toggleSong"
           :disabled="!voiceChatStore.isConnected"
-          :class="{
-            'btn-error': voiceChatStore.isSongMuted,
-            'btn-secondary': !voiceChatStore.isSongMuted,
-          }"
+          :class="voiceChatStore.isSongMuted ? 'btn-error' : 'btn-secondary'"
           class="btn btn-lg btn-circle"
-          :title="`Song ${voiceChatStore.isSongMuted ? 'disabled' : 'enabled'}`"
+          :title="voiceChatStore.isSongMuted ? 'Activer le son' : 'Couper le son'"
         >
-          {{ songIcon }}
+          <HeadphoneOff v-if="voiceChatStore.isSongMuted" :size="22" />
+          <Headphones v-else :size="22" />
         </button>
 
-        <!-- Disconnect Button -->
         <button
           @click="voiceChatStore.disconnect"
           :disabled="!voiceChatStore.isConnected"
-          class="btn btn-lg btn-circle btn-ghost"
-          title="Leave voice chat"
+          class="btn btn-lg btn-circle btn-error btn-outline"
+          title="Quitter le salon vocal"
         >
-          {{ disconnectIcon }}
+          <PhoneOff :size="22" />
         </button>
       </div>
 
-      <!-- Status Text -->
       <div class="text-center text-xs text-base-content/50 mt-4">
-        <span v-if="voiceChatStore.isMicMuted" class="text-error">
-          Microphone muted
+        <span :class="voiceChatStore.isMicMuted ? 'text-error' : 'text-success'">
+          {{ voiceChatStore.isMicMuted ? 'Micro coupé' : 'Micro actif' }}
         </span>
-        <span v-else class="text-success">
-          Microphone active
-        </span>
-        •
-        <span v-if="voiceChatStore.isSongMuted" class="text-error">
-          Song disabled
-        </span>
-        <span v-else class="text-success">
-          Song enabled
+        ·
+        <span :class="voiceChatStore.isSongMuted ? 'text-error' : 'text-success'">
+          {{ voiceChatStore.isSongMuted ? 'Son coupé' : 'Son actif' }}
         </span>
       </div>
     </div>

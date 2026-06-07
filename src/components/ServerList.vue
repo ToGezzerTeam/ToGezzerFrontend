@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { getMyServers, joinServer } from '@/api/route/server.ts'
 import type { ServerDTO } from '@/api/types/server.ts'
+import { Plus } from '@lucide/vue'
 
 const servers = ref<ServerDTO[]>([])
 const isLoading = ref(true)
@@ -100,7 +101,7 @@ onMounted(loadServers)
         type="button"
         @click="openModal"
       >
-        <span class="text-2xl font-light leading-none">+</span>
+        <Plus :size="20" />
       </button>
     </div>
   </nav>

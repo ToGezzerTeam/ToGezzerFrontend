@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
 import VoiceChatHeader from './VoiceChatHeader.vue';
 import VoiceChatControls from './VoiceChatControls.vue';
@@ -13,18 +13,20 @@ const props = defineProps<{
 
 const voiceChatStore = useVoiceChatStore();
 
-onMounted(async () => {
+const joinVoiceRoom = async (roomId: string) => {
   try {
-    await voiceChatStore.connect(props.roomId);
-    await voiceChatStore.startAudio();
+    if (voiceChatStore.isConnected && voiceChatStore.currentRoomId === roomId) return
+    if (voiceChatStore.isConnected) await voiceChatStore.disconnect()
+    await voiceChatStore.connect(roomId)
+    await voiceChatStore.startAudio()
   } catch (error) {
-    console.error('Failed to initialize voice chat:', error);
+    console.error('Failed to initialize voice chat:', error)
   }
-});
+}
 
-onUnmounted(async () => {
-  await voiceChatStore.disconnect();
-});
+onMounted(() => joinVoiceRoom(props.roomId))
+
+watch(() => props.roomId, (newId) => joinVoiceRoom(newId))
 </script>
 
 <template>

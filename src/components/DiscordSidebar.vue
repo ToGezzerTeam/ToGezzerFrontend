@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createRoom, joinRoom } from '@/api/route/room.ts'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import { Hash, Volume2, Plus, Mic, MicOff, Headphones, HeadphoneOff, PhoneOff } from '@lucide/vue'
 
 type ChannelKind = 'text' | 'voice'
 
@@ -27,16 +29,18 @@ const textChannels = computed(() => props.channels.filter((c) => c.type === 'tex
 const voiceChannels = computed(() => props.channels.filter((c) => c.type === 'voice'))
 
 const isChannelActive = (uuid: string) => route.params.channelUuid === uuid
-const channelPrefix = (kind: ChannelKind) => (kind === 'text' ? '#' : '🔊')
+const channelIcon = (kind: ChannelKind) => (kind === 'text' ? Hash : Volume2)
 
 // Create room modal
 const modalRef = ref<HTMLDialogElement | null>(null)
 const newChannelName = ref('')
+const newChannelType = ref<'TEXT' | 'VOICE'>('TEXT')
 const isCreating = ref(false)
 const createError = ref<string | null>(null)
 
 const openModal = () => {
   newChannelName.value = ''
+  newChannelType.value = 'TEXT'
   createError.value = null
   modalRef.value?.showModal()
 }
@@ -47,7 +51,11 @@ const submitCreate = async () => {
   isCreating.value = true
   createError.value = null
   try {
-    const room = await createRoom({ name, channelType: 'TEXT', serverId: props.serverId })
+    const room = await createRoom({
+      name,
+      channelType: newChannelType.value,
+      serverId: props.serverId,
+    })
     if (room.uuid) await joinRoom(room.uuid)
     modalRef.value?.close()
     emit('channelCreated')
@@ -61,6 +69,13 @@ const submitCreate = async () => {
 const onKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter') submitCreate()
 }
+
+const voiceStore = useVoiceChatStore()
+const connectedChannel = computed(() =>
+  voiceStore.isConnected
+    ? (props.channels.find((c) => c.uuid === voiceStore.currentRoomId) ?? null)
+    : null,
+)
 </script>
 
 <template>
@@ -93,18 +108,23 @@ const onKeydown = (e: KeyboardEvent) => {
               title="Ajouter un salon"
               @click="openModal"
             >
-              +
+              <Plus :size="14" />
             </button>
           </li>
           <li v-for="channel in textChannels" :key="channel.uuid">
             <RouterLink
-              :to="{ name: 'channel', params: { serverUuid: props.serverUuid, channelUuid: channel.uuid } }"
+              :to="{
+                name: 'channel',
+                params: { serverUuid: props.serverUuid, channelUuid: channel.uuid },
+              }"
               class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60"
               :class="isChannelActive(channel.uuid) ? 'bg-base-300/70' : ''"
             >
-              <span class="w-5 text-center text-sm text-base-content/60">{{
-                channelPrefix(channel.type)
-              }}</span>
+              <component
+                :is="channelIcon(channel.type)"
+                :size="15"
+                class="shrink-0 text-base-content/60"
+              />
               <span class="truncate">{{ channel.name }}</span>
             </RouterLink>
           </li>
@@ -118,13 +138,18 @@ const onKeydown = (e: KeyboardEvent) => {
           </li>
           <li v-for="channel in voiceChannels" :key="channel.uuid">
             <RouterLink
-              :to="{ name: 'channel', params: { serverUuid: props.serverUuid, channelUuid: channel.uuid } }"
+              :to="{
+                name: 'channel',
+                params: { serverUuid: props.serverUuid, channelUuid: channel.uuid },
+              }"
               class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-300/60"
               :class="isChannelActive(channel.uuid) ? 'bg-base-300/70' : ''"
             >
-              <span class="w-5 text-center text-sm text-base-content/60">{{
-                channelPrefix(channel.type)
-              }}</span>
+              <component
+                :is="channelIcon(channel.type)"
+                :size="15"
+                class="shrink-0 text-base-content/60"
+              />
               <span class="truncate">{{ channel.name }}</span>
             </RouterLink>
           </li>
@@ -135,22 +160,75 @@ const onKeydown = (e: KeyboardEvent) => {
         </li>
       </ul>
     </div>
+    <!-- Voice status bar -->
+    <div v-if="connectedChannel" class="border-t border-base-300 bg-base-300/60 px-3 py-2">
+      <div class="mb-1.5 flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-success"></span>
+        <span class="text-xs font-semibold text-success">Vocal connecté</span>
+      </div>
+      <p class="mb-2 flex items-center gap-1.5 truncate text-xs text-base-content/70">
+        <Volume2 :size="13" />{{ connectedChannel.name }}
+      </p>
+      <div class="flex gap-1">
+        <button
+          class="btn btn-ghost btn-xs btn-circle"
+          :class="voiceStore.isMicMuted ? 'text-error' : ''"
+          :title="voiceStore.isMicMuted ? 'Activer le micro' : 'Couper le micro'"
+          @click="voiceStore.toggleMic"
+        >
+          <MicOff v-if="voiceStore.isMicMuted" :size="14" />
+          <Mic v-else :size="14" />
+        </button>
+        <button
+          class="btn btn-ghost btn-xs btn-circle"
+          :class="voiceStore.isSongMuted ? 'text-error' : ''"
+          :title="voiceStore.isSongMuted ? 'Activer le son' : 'Couper le son'"
+          @click="voiceStore.toggleSong"
+        >
+          <HeadphoneOff v-if="voiceStore.isSongMuted" :size="14" />
+          <Headphones v-else :size="14" />
+        </button>
+        <button
+          class="btn btn-ghost btn-xs btn-circle text-error"
+          title="Quitter le salon vocal"
+          @click="voiceStore.disconnect"
+        >
+          <PhoneOff :size="14" />
+        </button>
+      </div>
+    </div>
   </aside>
 
   <!-- Create channel modal -->
   <dialog ref="modalRef" class="modal">
     <div class="modal-box">
-      <h3 class="mb-4 text-lg font-bold">Nouveau salon texte</h3>
+      <h3 class="mb-4 text-lg font-bold">
+        Nouveau salon {{ newChannelType === 'TEXT' ? 'texte' : 'vocal' }}
+      </h3>
 
       <div v-if="createError" role="alert" class="alert alert-error alert-soft mb-3 py-2 text-sm">
         <span>{{ createError }}</span>
       </div>
 
+      <fieldset class="fieldset mb-3">
+        <legend class="fieldset-legend">Type de salon</legend>
+        <label class="flex cursor-pointer items-center gap-3">
+          <span class="flex items-center gap-1.5 text-sm"> <Hash :size="14" /> Texte </span>
+          <input
+            type="checkbox"
+            class="toggle toggle-primary"
+            :checked="newChannelType === 'VOICE'"
+            @change="newChannelType = newChannelType === 'TEXT' ? 'VOICE' : 'TEXT'"
+          />
+          <span class="flex items-center gap-1.5 text-sm"> <Volume2 :size="14" /> Vocal </span>
+        </label>
+      </fieldset>
+
       <input
         v-model="newChannelName"
         type="text"
         class="input input-bordered w-full"
-        placeholder="Nom du salon"
+        :placeholder="newChannelType === 'TEXT' ? 'Nom du salon texte' : 'Nom du salon vocal'"
         :disabled="isCreating"
         @keydown="onKeydown"
       />

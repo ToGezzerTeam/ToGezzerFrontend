@@ -10,6 +10,7 @@ import {
 import { joinRoom, leaveRoom, onMessage } from '@/api/socket/messages/socket.ts'
 import type { MessageDTO } from '@/api/types/messages.ts'
 import FileMessage from '@/components/FileMessage.vue'
+import { Reply, X, Paperclip, ChevronLeft, ChevronRight } from '@lucide/vue'
 
 const props = defineProps<{ roomUuid: string }>()
 
@@ -319,7 +320,7 @@ const scrollToMessage = (uuid: string) => {
                 class="chat-footer mt-0.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <button class="btn btn-ghost btn-xs" title="Répondre" @click="startReply(msg)">
-                  ↩
+                  <Reply :size="14" />
                 </button>
                 <template v-if="isOwn(msg)">
                   <button
@@ -343,7 +344,7 @@ const scrollToMessage = (uuid: string) => {
     <div class="border-t border-base-300 bg-base-100 px-4 py-3">
       <div v-if="error" role="alert" class="alert alert-error alert-soft mb-2 py-2 text-sm">
         <span>{{ error }}</span>
-        <button class="btn btn-ghost btn-xs" @click="error = null">✕</button>
+        <button class="btn btn-ghost btn-xs" @click="error = null"><X :size="14" /></button>
       </div>
 
       <!-- Reply preview -->
@@ -355,7 +356,7 @@ const scrollToMessage = (uuid: string) => {
           <span class="font-semibold text-base-content">{{ replyingTo.authorName }}</span>
           <span class="ml-1">{{ truncate(replyingTo.content.value) }}</span>
         </span>
-        <button class="btn btn-ghost btn-xs" @click="replyingTo = null">✕</button>
+        <button class="btn btn-ghost btn-xs" @click="replyingTo = null"><X :size="14" /></button>
       </div>
 
       <div class="flex gap-2">
@@ -367,7 +368,7 @@ const scrollToMessage = (uuid: string) => {
           @click="fileInputEl?.click()"
         >
           <span v-if="isUploadingFile" class="loading loading-spinner loading-sm"></span>
-          <span v-else>📎</span>
+          <Paperclip v-else :size="18" />
         </button>
         <input
           ref="inputEl"
