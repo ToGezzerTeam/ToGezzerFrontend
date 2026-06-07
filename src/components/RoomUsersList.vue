@@ -21,11 +21,12 @@ const voiceChatStore = useVoiceChatStore()
           class="list-row gap-3 p-3 rounded-lg bg-base-200/50 hover:bg-base-200 transition-colors"
         >
           <!-- User Avatar with Status -->
-          <div class="avatar placeholder">
-            <div class="bg-primary text-primary-content rounded-full w-10">
-              <span class="text-sm font-bold">
-                {{ user.userId.charAt(0).toUpperCase() }}
-              </span>
+          <div class="avatar">
+            <div class="rounded-full w-10">
+              <img
+                :src="`https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(user.username)}`"
+                :alt="user.username"
+              />
             </div>
           </div>
 
