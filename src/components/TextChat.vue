@@ -5,9 +5,11 @@ import {
   createMessage,
   updateMessage,
   deleteMessage,
+  uploadFile,
 } from '@/api/route/message.ts'
 import { joinRoom, leaveRoom, onMessage } from '@/api/socket/messages/socket.ts'
 import type { MessageDTO } from '@/api/types/messages.ts'
+import FileMessage from '@/components/FileMessage.vue'
 
 const props = defineProps<{ roomUuid: string }>()
 
@@ -22,6 +24,8 @@ const newMessage = ref('')
 const error = ref<string | null>(null)
 const messagesEl = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLInputElement | null>(null)
+const fileInputEl = ref<HTMLInputElement | null>(null)
+const isUploadingFile = ref(false)
 
 // Edit state
 const editingUuid = ref<string | null>(null)
@@ -185,6 +189,25 @@ const confirmDelete = async (msg: MessageDTO) => {
   }
 }
 
+const sendFile = async (file: File) => {
+  if (isUploadingFile.value) return
+  isUploadingFile.value = true
+  error.value = null
+  try {
+    await uploadFile(props.roomUuid, file)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "Impossible d'envoyer le fichier."
+  } finally {
+    isUploadingFile.value = false
+    if (fileInputEl.value) fileInputEl.value.value = ''
+  }
+}
+
+const onFileChange = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) sendFile(file)
+}
+
 const isOwn = (msg: MessageDTO) => msg.authorId === currentUserUuid
 
 const formatTime = (iso: string) =>
@@ -278,7 +301,12 @@ const scrollToMessage = (uuid: string) => {
                     truncate(messageMap.get(msg.answerTo)!.content.value)
                   }}</span>
                 </div>
-                <span>
+                <FileMessage
+                  v-if="msg.content.type === 'file'"
+                  :room-uuid="roomUuid"
+                  :object-name="msg.content.value"
+                />
+                <span v-else>
                   {{ msg.content.value }}
                   <span v-if="msg.state === 'updated'" class="ml-1 text-xs opacity-60"
                     >(modifié)</span
@@ -294,7 +322,13 @@ const scrollToMessage = (uuid: string) => {
                   ↩
                 </button>
                 <template v-if="isOwn(msg)">
-                  <button class="btn btn-ghost btn-xs" @click="startEdit(msg)">Modifier</button>
+                  <button
+                    v-if="msg.content.type === 'text'"
+                    class="btn btn-ghost btn-xs"
+                    @click="startEdit(msg)"
+                  >
+                    Modifier
+                  </button>
                   <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(msg)">
                     Supprimer
                   </button>
@@ -325,6 +359,16 @@ const scrollToMessage = (uuid: string) => {
       </div>
 
       <div class="flex gap-2">
+        <input ref="fileInputEl" type="file" class="hidden" @change="onFileChange" />
+        <button
+          class="btn btn-ghost btn-square"
+          :disabled="isUploadingFile"
+          title="Envoyer un fichier"
+          @click="fileInputEl?.click()"
+        >
+          <span v-if="isUploadingFile" class="loading loading-spinner loading-sm"></span>
+          <span v-else>📎</span>
+        </button>
         <input
           ref="inputEl"
           v-model="newMessage"
