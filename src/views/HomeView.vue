@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
@@ -8,6 +8,7 @@ import VoiceChat from '@/components/VoiceChat.vue'
 import { Hash, Volume2, ChevronLeft, ChevronRight, Plus, LogOut } from '@lucide/vue'
 import { joinRoom } from '@/api/route/room.ts'
 import { ServerStore } from '@/api/socket/server/store.ts'
+import { joinRoom as socketJoinServer } from '@/api/socket/messages/socket.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,7 +37,7 @@ const channelUuid = computed(() => {
 
 const selectedChannel = computed(() =>
   channelUuid.value
-    ? serverStore.channels.find((c) => c.uuid === channelUuid.value) ?? null
+    ? (serverStore.channels.find((c) => c.uuid === channelUuid.value) ?? null)
     : null,
 )
 
@@ -60,13 +61,17 @@ watch(
       serverStore.clearServerState()
       return
     }
-    loadServerDetail(uuid)
+    socketJoinServer(uuid)
   },
   { immediate: true },
 )
 
 watch(channelUuid, (uuid) => {
   if (uuid) joinRoom(uuid).catch(() => {})
+})
+
+onUnmounted(() => {
+  serverStore.clearServerState()
 })
 </script>
 
@@ -96,11 +101,7 @@ watch(channelUuid, (uuid) => {
             <span class="font-semibold">{{ selectedChannel.name }}</span>
           </div>
           <div class="navbar-end">
-            <button
-              class="btn btn-ghost btn-sm"
-              type="button"
-              @click="toggleSidebar"
-            >
+            <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
               <ChevronLeft v-if="isSidebarOpen" :size="16" />
               <ChevronRight v-else :size="16" />
             </button>
@@ -119,11 +120,7 @@ watch(channelUuid, (uuid) => {
             <span class="font-semibold">{{ selectedChannel.name }}</span>
           </div>
           <div class="navbar-end">
-            <button
-              class="btn btn-ghost btn-sm"
-              type="button"
-              @click="toggleSidebar"
-            >
+            <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
               <ChevronLeft v-if="isSidebarOpen" :size="16" />
               <ChevronRight v-else :size="16" />
             </button>
@@ -174,7 +171,9 @@ watch(channelUuid, (uuid) => {
   <dialog ref="logoutModalRef" class="modal">
     <div class="modal-box">
       <h3 class="text-lg font-bold">Se déconnecter ?</h3>
-      <p class="py-4 text-base-content/70">Vous devrez vous reconnecter pour accéder à l'application.</p>
+      <p class="py-4 text-base-content/70">
+        Vous devrez vous reconnecter pour accéder à l'application.
+      </p>
       <div class="modal-action">
         <form method="dialog">
           <button class="btn btn-ghost">Annuler</button>

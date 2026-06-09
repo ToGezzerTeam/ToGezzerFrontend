@@ -1,4 +1,5 @@
 import { getSocket } from '../socket'
+import type { RoomEventPayload } from '@/api/types/room.ts'
 
 export interface VoiceUserInfo {
   userId: string
@@ -60,3 +61,10 @@ export const onUserMediaStateChanged = (
     socket.off('userMediaStateChanged', wrappedHandler)
   }
 }
+
+export const onRoomEvent = (handler: (event: RoomEventPayload) => void): (() => void) => {
+  const socket = getSocket()
+  socket.on('room', handler)
+  return () => socket.off('room', handler)
+}
+
