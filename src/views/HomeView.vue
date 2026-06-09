@@ -61,7 +61,7 @@ watch(
       serverStore.clearServerState()
       return
     }
-    socketJoinServer(uuid)
+    reloadServer()
   },
   { immediate: true },
 )
