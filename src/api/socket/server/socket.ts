@@ -13,12 +13,6 @@ export interface VocalsUsersUpdatePayload {
   users: VoiceUserInfo[]
 }
 
-export interface UserMediaStatePayload {
-  roomId: string
-  userId: string
-  isMicMuted: boolean
-  isSongMuted: boolean
-}
 
 export const joinServerRoom = (
   serverUuid: string,
@@ -45,22 +39,6 @@ export const leaveServerRoom = (serverUuid: string): void => {
   socket.emit('disconnectServer', serverUuid)
 }
 
-export const onUserMediaStateChanged = (
-  handler: (payload: UserMediaStatePayload) => void,
-): (() => void) => {
-  const socket = getSocket()
-
-  const wrappedHandler = (payload: UserMediaStatePayload) => {
-    console.log('[WS] userMediaStateChanged:', payload)
-    handler(payload)
-  }
-
-  socket.on('userMediaStateChanged', wrappedHandler)
-  return () => {
-    console.log('Stop listening to userMediaStateChanged')
-    socket.off('userMediaStateChanged', wrappedHandler)
-  }
-}
 
 export const onRoomEvent = (handler: (event: RoomEventPayload) => void): (() => void) => {
   const socket = getSocket()

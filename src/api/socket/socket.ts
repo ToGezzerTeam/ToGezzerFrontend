@@ -5,13 +5,15 @@ const SOCKET_URL = import.meta.env.VITE_WS_URL
 let socket: Socket | null = null
 
 export const getSocket = () => {
-  socket = io(SOCKET_URL, {
-    autoConnect: true,
-    transports: ['websocket'],
-    auth: {
-      token: localStorage.getItem('auth_token'),
-    },
-  })
+  if (!socket) {
+    socket = io(SOCKET_URL, {
+      autoConnect: true,
+      transports: ['websocket'],
+      auth: {
+        token: localStorage.getItem('auth_token'),
+      },
+    })
+  }
   return socket
 }
 
