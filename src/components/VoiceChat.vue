@@ -1,32 +1,40 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
-import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts';
-import VoiceChatHeader from './VoiceChatHeader.vue';
-import VoiceChatControls from './VoiceChatControls.vue';
-import RoomUsersList from './RoomUsersList.vue';
-import VoiceChatError from './VoiceChatError.vue';
-import RemoteAudioContainer from './RemoteAudioContainer.vue';
+import { onMounted, watch } from 'vue'
+import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import VoiceChatHeader from './VoiceChatHeader.vue'
+import VoiceChatControls from './VoiceChatControls.vue'
+import RoomUsersList from './RoomUsersList.vue'
+import VoiceChatError from './VoiceChatError.vue'
+import RemoteAudioContainer from './RemoteAudioContainer.vue'
 
 const props = defineProps<{
-  roomId: string;
-}>();
+  roomId: string
+  serverId: string
+}>()
 
-const voiceChatStore = useVoiceChatStore();
+const voiceChatStore = useVoiceChatStore()
 
-const joinVoiceRoom = async (roomId: string) => {
+const joinVoiceRoom = async (roomId: string, serverId: string) => {
   try {
     if (voiceChatStore.isConnected && voiceChatStore.currentRoomId === roomId) return
     if (voiceChatStore.isConnected) await voiceChatStore.disconnect()
-    await voiceChatStore.connect(roomId)
+    await voiceChatStore.connect(roomId, serverId)
     await voiceChatStore.startAudio()
   } catch (error) {
     console.error('Failed to initialize voice chat:', error)
   }
 }
 
-onMounted(() => joinVoiceRoom(props.roomId))
+onMounted(() => joinVoiceRoom(props.roomId, props.serverId))
 
-watch(() => props.roomId, (newId) => joinVoiceRoom(newId))
+watch(
+  () => props.roomId,
+  (newId) => joinVoiceRoom(newId, props.serverId),
+)
+watch(
+  () => props.serverId,
+  (newId) => joinVoiceRoom(props.roomId, newId),
+)
 </script>
 
 <template>
@@ -50,4 +58,3 @@ watch(() => props.roomId, (newId) => joinVoiceRoom(newId))
     </div>
   </div>
 </template>
-

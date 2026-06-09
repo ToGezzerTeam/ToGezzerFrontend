@@ -5,6 +5,7 @@ import VoiceChat from '@/components/VoiceChat.vue'
 import VolumeMeter from '@/components/VolumeMeter.vue'
 
 const roomId = ref<string>('')
+const serverId = ref<string>('')
 const displayName = ref<string>('')
 const isInVoiceChat = ref(false)
 
@@ -19,12 +20,12 @@ const {
 } = useVoiceChat()
 
 const canJoin = computed(() => {
-  return roomId.value.trim() !== ''
+  return roomId.value.trim() !== '' && serverId.value.trim() !== ''
 })
 
 const startVoiceChat = async () => {
   try {
-    await connect(roomId.value)
+    await connect(roomId.value, serverId.value)
     isInVoiceChat.value = true
   } catch (error) {
     console.error('Failed to start voice chat:', error)
@@ -43,6 +44,7 @@ const exitVoiceChat = async () => {
 
 const resetForm = () => {
   roomId.value = ''
+  serverId.value = ''
   displayName.value = ''
 }
 
@@ -181,8 +183,14 @@ if (typeof window !== 'undefined') {
                     <p class="font-bold">Keyboard Shortcuts</p>
                     <ul class="text-xs mt-1 space-y-1">
                       <li><kbd class="kbd kbd-xs">Space</kbd> - Toggle microphone</li>
-                      <li><kbd class="kbd kbd-xs">Ctrl</kbd>+<kbd class="kbd kbd-xs">M</kbd> - Quick mute</li>
-                      <li><kbd class="kbd kbd-xs">Ctrl</kbd>+<kbd class="kbd kbd-xs">S</kbd> - Toggle song</li>
+                      <li>
+                        <kbd class="kbd kbd-xs">Ctrl</kbd>+<kbd class="kbd kbd-xs">M</kbd> - Quick
+                        mute
+                      </li>
+                      <li>
+                        <kbd class="kbd kbd-xs">Ctrl</kbd>+<kbd class="kbd kbd-xs">S</kbd> - Toggle
+                        song
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -198,19 +206,17 @@ if (typeof window !== 'undefined') {
       <!-- Top Bar -->
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h1 class="text-3xl font-bold">🎤 </h1>
+          <h1 class="text-3xl font-bold">🎤</h1>
           <p class="text-sm text-base-content/60">Room: {{ roomId }}</p>
         </div>
-        <button @click="exitVoiceChat" class="btn btn-outline btn-error">
-          Exit Chat
-        </button>
+        <button @click="exitVoiceChat" class="btn btn-outline btn-error">Exit Chat</button>
       </div>
 
       <!-- Main Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
         <!-- Main Content -->
         <div class="lg:col-span-2">
-          <VoiceChat :room-id="roomId" />
+          <VoiceChat :room-id="roomId" :serverId="serverId" />
         </div>
 
         <!-- Sidebar -->
@@ -231,10 +237,13 @@ if (typeof window !== 'undefined') {
               <!-- Connection Status -->
               <div class="flex justify-between items-center">
                 <span class="text-sm">Connection:</span>
-                <span class="badge" :class="{
-                  'badge-success': voiceChatStore.isConnected,
-                  'badge-warning': voiceChatStore.isConnecting,
-                }">
+                <span
+                  class="badge"
+                  :class="{
+                    'badge-success': voiceChatStore.isConnected,
+                    'badge-warning': voiceChatStore.isConnecting,
+                  }"
+                >
                   {{ voiceChatStore.connectionStatus }}
                 </span>
               </div>
@@ -242,10 +251,13 @@ if (typeof window !== 'undefined') {
               <!-- Microphone Status -->
               <div class="flex justify-between items-center">
                 <span class="text-sm">Microphone:</span>
-                <span class="badge" :class="{
-                  'badge-error': voiceChatStore.isMicMuted,
-                  'badge-success': !voiceChatStore.isMicMuted,
-                }">
+                <span
+                  class="badge"
+                  :class="{
+                    'badge-error': voiceChatStore.isMicMuted,
+                    'badge-success': !voiceChatStore.isMicMuted,
+                  }"
+                >
                   {{ voiceChatStore.isMicMuted ? 'Muted' : 'Active' }}
                 </span>
               </div>
@@ -253,10 +265,13 @@ if (typeof window !== 'undefined') {
               <!-- Song Status -->
               <div class="flex justify-between items-center">
                 <span class="text-sm">Song:</span>
-                <span class="badge" :class="{
-                  'badge-error': voiceChatStore.isSongMuted,
-                  'badge-success': !voiceChatStore.isSongMuted,
-                }">
+                <span
+                  class="badge"
+                  :class="{
+                    'badge-error': voiceChatStore.isSongMuted,
+                    'badge-success': !voiceChatStore.isSongMuted,
+                  }"
+                >
                   {{ voiceChatStore.isSongMuted ? 'Disabled' : 'Enabled' }}
                 </span>
               </div>
@@ -300,4 +315,3 @@ if (typeof window !== 'undefined') {
     </div>
   </div>
 </template>
-

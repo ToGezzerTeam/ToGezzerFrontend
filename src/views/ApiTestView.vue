@@ -22,7 +22,6 @@ import {
   joinRoom as wsJoinRoom,
   onMessage,
   leaveRoom as wsLeaveRoom,
-  disconnectSocket,
 } from '@/api/socket/messages/socket'
 import type { MessageDTO } from '@/api/types/messages'
 
@@ -131,7 +130,6 @@ const disconnectFromWsRoom = () => {
     unsubscribeMessage()
     unsubscribeMessage = null
   }
-  disconnectSocket()
   wsConnected.value = false
   output.value = 'Déconnecté du serveur WebSocket'
 }

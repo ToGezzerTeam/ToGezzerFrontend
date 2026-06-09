@@ -1,78 +1,92 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
 
 import HomeView from '../views/HomeView.vue'
 
+vi.mock('@/api/route/server.ts', () => ({
+  getServer: vi.fn().mockResolvedValue({
+    name: 'Serveur Test',
+  }),
+  getServerDetail: vi.fn().mockResolvedValue({
+    serverId: 42,
+    roomDTOS: [
+      {
+        uuid: 'general',
+        name: 'général',
+        channelType: 'TEXT',
+      },
+      {
+        uuid: 'voice-1',
+        name: 'Vocal',
+        channelType: 'VOICE',
+      },
+    ],
+  }),
+}))
+
+vi.mock('@/api/route/room.ts', () => ({
+  joinRoom: vi.fn().mockResolvedValue(undefined),
+}))
+
 const DiscordSidebarStub = {
+  props: ['serverName', 'channels', 'isLoading', 'loadError'],
   template: `
-    <div>
-      <button
-        type="button"
-        data-test="channel-general"
-        @click="$emit('select-channel', { roomId: 'general', channelName: 'général', channelType: 'text' })"
-      >
-        général
-      </button>
-    </div>
+    <aside>
+      <p data-test="server-name">{{ serverName }}</p>
+      <p data-test="channel-count">{{ channels.length }}</p>
+      <p v-if="isLoading" data-test="loading">loading</p>
+      <p v-if="loadError" data-test="error">{{ loadError }}</p>
+    </aside>
   `,
+}
+
+const TextChatStub = {
+  props: ['roomUuid'],
+  template: `<div data-test="text-chat">{{ roomUuid }}</div>`,
+}
+
+const VoiceChatStub = {
+  props: ['roomId'],
+  template: `<div data-test="voice-chat">{{ roomId }}</div>`,
 }
 
 describe('HomeView', () => {
   afterEach(() => {
     vi.restoreAllMocks()
-    vi.unstubAllGlobals()
   })
 
-  it('loads and sequences messages when a channel is selected', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        messageDTOS: [
-          {
-            uuid: 'msg-2',
-            roomId: 'general',
-            authorId: 'user-2',
-            content: { type: 'text', value: 'Message récent' },
-            state: 'updated',
-            createdAt: '2026-05-10T11:00:00Z',
-            updatedAt: '2026-05-10T11:05:00Z',
-          },
-          {
-            uuid: 'msg-1',
-            roomId: 'general',
-            authorId: 'user-1',
-            content: { type: 'text', value: 'Message ancien' },
-            state: 'created',
-            createdAt: '2026-05-10T10:00:00Z',
-          },
-        ],
-        hasMore: true,
-      }),
+  it('loads server data from store and renders selected channel', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: HomeView },
+        { path: '/server/:serverUuid/channel/:channelUuid', component: HomeView },
+      ],
     })
 
-    vi.stubGlobal('fetch', fetchMock)
+    await router.push('/server/server-1/channel/general')
+    await router.isReady()
 
     const wrapper = mount(HomeView, {
       global: {
+        plugins: [createPinia(), router],
         stubs: {
+          ServerList: true,
           DiscordSidebar: DiscordSidebarStub,
+          TextChat: TextChatStub,
+          VoiceChat: VoiceChatStub,
         },
       },
     })
 
-    await wrapper.get('[data-test="channel-general"]').trigger('click')
     await flushPromises()
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/messages/general?pageSize=100',
-      expect.objectContaining({
-        method: 'GET',
-      }),
-    )
-
-    expect(wrapper.text()).toContain('Message ancien')
-    expect(wrapper.text()).toContain('Message récent')
-    expect(wrapper.text()).toContain('Plus de messages disponibles')
-    expect(wrapper.text().indexOf('Message ancien')).toBeLessThan(wrapper.text().indexOf('Message récent'))
+    expect(wrapper.get('[data-test="server-name"]').text()).toBe('Serveur Test')
+    expect(wrapper.get('[data-test="channel-count"]').text()).toBe('2')
+    expect(wrapper.get('[data-test="text-chat"]').text()).toBe('general')
+    expect(wrapper.text()).toContain('général')
   })
 })
+
