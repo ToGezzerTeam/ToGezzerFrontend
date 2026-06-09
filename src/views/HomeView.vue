@@ -1,18 +1,29 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
 import type { ChannelItem } from '@/components/DiscordSidebar.vue'
 import TextChat from '@/components/TextChat.vue'
 import VoiceChat from '@/components/VoiceChat.vue'
-import { Hash, Volume2, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { Hash, Volume2, ChevronLeft, ChevronRight, Plus, LogOut } from '@lucide/vue'
 import { getServerDetail, getServer } from '@/api/route/server.ts'
 import { joinRoom } from '@/api/route/room.ts'
 import type { RoomDTO } from '@/api/types/room.ts'
 
 const route = useRoute()
+const router = useRouter()
 const isSidebarOpen = ref(true)
+const serverListRef = ref<InstanceType<typeof ServerList> | null>(null)
+const logoutModalRef = ref<HTMLDialogElement | null>(null)
+
+const logout = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user_uuid')
+  localStorage.removeItem('user_id')
+  localStorage.removeItem('user_name')
+  router.push({ name: 'login' })
+}
 const channels = ref<ChannelItem[]>([])
 const serverId = ref<number | null>(null)
 const serverName = ref<string | null>(null)
@@ -78,7 +89,7 @@ watch(
 <template>
   <div class="flex h-screen bg-base-100">
     <!-- Server list column -->
-    <ServerList />
+    <ServerList ref="serverListRef" />
 
     <!-- Channel sidebar -->
     <DiscordSidebar
@@ -139,21 +150,29 @@ watch(
     </template>
 
     <!-- Other states -->
-    <main v-else class="flex flex-1 flex-col overflow-y-auto p-6">
-      <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
-        <div class="flex items-center justify-between gap-3">
-          <h1 class="text-2xl font-bold">Bienvenue sur ToGezzer</h1>
-          <button
-            v-if="serverUuid"
-            class="btn btn-outline btn-sm"
-            type="button"
-            @click="isSidebarOpen = !isSidebarOpen"
-          >
-            {{ isSidebarOpen ? 'Masquer la sidebar' : 'Afficher la sidebar' }}
-          </button>
-        </div>
+    <main v-else class="flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
+      <div class="flex w-full max-w-sm flex-col items-center gap-6 text-center">
         <template v-if="!serverUuid">
-          <p class="text-base-content/70">Sélectionne un serveur dans la barre de gauche.</p>
+          <h1 class="text-3xl font-bold">Bienvenue sur ToGezzer</h1>
+          <p class="text-base-content/60">Rejoins ou crée un serveur pour commencer.</p>
+          <div class="flex w-full flex-col gap-3">
+            <button
+              class="btn btn-primary w-full gap-2"
+              type="button"
+              @click="serverListRef?.openModal()"
+            >
+              <Plus :size="18" />
+              Créer / Rejoindre un serveur
+            </button>
+            <button
+              class="btn btn-error btn-outline w-full gap-2"
+              type="button"
+              @click="logoutModalRef?.showModal()"
+            >
+              <LogOut :size="18" />
+              Se déconnecter
+            </button>
+          </div>
         </template>
         <template v-else>
           <p class="text-base-content/70">
@@ -163,4 +182,18 @@ watch(
       </div>
     </main>
   </div>
+
+  <dialog ref="logoutModalRef" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">Se déconnecter ?</h3>
+      <p class="py-4 text-base-content/70">Vous devrez vous reconnecter pour accéder à l'application.</p>
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn btn-ghost">Annuler</button>
+        </form>
+        <button class="btn btn-error" @click="logout">Se déconnecter</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
 </template>
