@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
@@ -65,6 +65,8 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(reloadServer)
 
 watch(channelUuid, (uuid) => {
   if (uuid) joinRoom(uuid).catch(() => {})
