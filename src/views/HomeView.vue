@@ -3,16 +3,15 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
-import type { ChannelItem } from '@/components/DiscordSidebar.vue'
 import TextChat from '@/components/TextChat.vue'
 import VoiceChat from '@/components/VoiceChat.vue'
 import { Hash, Volume2, ChevronLeft, ChevronRight, Plus, LogOut } from '@lucide/vue'
-import { getServerDetail, getServer } from '@/api/route/server.ts'
 import { joinRoom } from '@/api/route/room.ts'
-import type { RoomDTO } from '@/api/types/room.ts'
+import { ServerStore } from '@/api/socket/server/store.ts'
 
 const route = useRoute()
 const router = useRouter()
+const serverStore = ServerStore()
 const isSidebarOpen = ref(true)
 const serverListRef = ref<InstanceType<typeof ServerList> | null>(null)
 const logoutModalRef = ref<HTMLDialogElement | null>(null)
@@ -24,11 +23,6 @@ const logout = () => {
   localStorage.removeItem('user_name')
   router.push({ name: 'login' })
 }
-const channels = ref<ChannelItem[]>([])
-const serverId = ref<number | null>(null)
-const serverName = ref<string | null>(null)
-const isLoadingChannels = ref(false)
-const loadChannelsError = ref<string | null>(null)
 
 const serverUuid = computed(() => {
   const v = route.params.serverUuid
@@ -41,49 +35,39 @@ const channelUuid = computed(() => {
 })
 
 const selectedChannel = computed(() =>
-  channelUuid.value ? (channels.value.find((c) => c.uuid === channelUuid.value) ?? null) : null,
+  channelUuid.value
+    ? serverStore.channels.find((c) => c.uuid === channelUuid.value) ?? null
+    : null,
 )
 
 const loadServerDetail = async (uuid: string) => {
-  isLoadingChannels.value = true
-  loadChannelsError.value = null
-  try {
-    const [detail, server] = await Promise.all([getServerDetail(uuid), getServer(uuid)])
-    serverId.value = detail.serverId ?? null
-    serverName.value = server.name
-    channels.value = (detail.roomDTOS ?? [])
-      .filter((r): r is RoomDTO & { uuid: string; name: string } => !!r.uuid && !!r.name)
-      .map((r) => ({
-        uuid: r.uuid!,
-        name: r.name!,
-        type: r.channelType === 'TEXT' ? 'text' : 'voice',
-      }))
-  } catch (err) {
-    loadChannelsError.value = err instanceof Error ? err.message : 'Erreur inconnue.'
-    channels.value = []
-    serverId.value = null
-    serverName.value = null
-  } finally {
-    isLoadingChannels.value = false
-  }
+  await serverStore.loadServerDetail(uuid)
 }
 
-watch(channelUuid, (uuid) => {
-  if (uuid) joinRoom(uuid).catch(() => {})
-})
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
+const reloadServer = () => {
+  if (!serverUuid.value) return
+  return loadServerDetail(serverUuid.value)
+}
 
 watch(
   serverUuid,
   (uuid) => {
     if (!uuid) {
-      channels.value = []
-      serverId.value = null
+      serverStore.clearServerState()
       return
     }
     loadServerDetail(uuid)
   },
   { immediate: true },
 )
+
+watch(channelUuid, (uuid) => {
+  if (uuid) joinRoom(uuid).catch(() => {})
+})
 </script>
 
 <template>
@@ -95,12 +79,12 @@ watch(
     <DiscordSidebar
       v-if="isSidebarOpen && serverUuid"
       :server-uuid="serverUuid"
-      :server-id="serverId"
-      :server-name="serverName"
-      :channels="channels"
-      :is-loading="isLoadingChannels"
-      :load-error="loadChannelsError"
-      @channel-created="loadServerDetail(serverUuid!)"
+      :server-id="serverStore.serverId"
+      :server-name="serverStore.serverName"
+      :channels="serverStore.channels"
+      :is-loading="serverStore.isLoadingChannels"
+      :load-error="serverStore.loadChannelsError"
+      @channel-created="reloadServer"
     />
 
     <!-- Text channel -->
@@ -115,7 +99,7 @@ watch(
             <button
               class="btn btn-ghost btn-sm"
               type="button"
-              @click="isSidebarOpen = !isSidebarOpen"
+              @click="toggleSidebar"
             >
               <ChevronLeft v-if="isSidebarOpen" :size="16" />
               <ChevronRight v-else :size="16" />
@@ -138,14 +122,18 @@ watch(
             <button
               class="btn btn-ghost btn-sm"
               type="button"
-              @click="isSidebarOpen = !isSidebarOpen"
+              @click="toggleSidebar"
             >
               <ChevronLeft v-if="isSidebarOpen" :size="16" />
               <ChevronRight v-else :size="16" />
             </button>
           </div>
         </div>
-        <VoiceChat :room-id="selectedChannel.uuid" class="flex-1 overflow-hidden" />
+        <VoiceChat
+          :room-id="selectedChannel.uuid"
+          :server-id="serverUuid!"
+          class="flex-1 overflow-hidden"
+        />
       </div>
     </template>
 

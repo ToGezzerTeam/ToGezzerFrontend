@@ -38,16 +38,16 @@ export function useVoiceChat(options: UseVoiceChatOptions = {}) {
   const isInitializing = ref(false)
 
   // Connect to voice chat
-  const connect = async (roomId?: string) => {
+  const connect = async (roomId?: string, serverId?: string) => {
     try {
       isInitializing.value = true
       const actualRoomId = roomId || options.roomId
 
-      if (!actualRoomId) {
-        throw new Error('Room ID and User ID are required')
+      if (!actualRoomId || !serverId) {
+        throw new Error('Room ID and Server ID and User ID are required')
       }
 
-      await voiceChatStore.connect(actualRoomId)
+      await voiceChatStore.connect(actualRoomId, serverId)
       await voiceChatStore.startAudio()
     } catch (error) {
       console.error('Failed to connect:', error)
@@ -165,9 +165,7 @@ export function useVoiceChat(options: UseVoiceChatOptions = {}) {
 export function getUserMediaState(userId: string) {
   const voiceChatStore = useVoiceChatStore()
 
-  return Array.from(voiceChatStore.roomUsers.values()).find(
-    (user) => user.userId === userId,
-  )
+  return Array.from(voiceChatStore.roomUsers.values()).find((user) => user.userId === userId)
 }
 
 /**
@@ -177,4 +175,3 @@ export function getUserBySocketId(socketId: string) {
   const voiceChatStore = useVoiceChatStore()
   return voiceChatStore.roomUsers.get(socketId)
 }
-

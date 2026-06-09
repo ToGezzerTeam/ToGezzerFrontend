@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { createRoom, joinRoom } from '@/api/route/room.ts'
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
+import { ServerStore } from '@/api/socket/server/store.ts'
 import {
   Hash,
   Volume2,
@@ -20,11 +21,17 @@ const copied = ref(false)
 const copyInvite = async () => {
   await navigator.clipboard.writeText(props.serverUuid)
   copied.value = true
-  setTimeout(() => { copied.value = false }, 2000)
+  setTimeout(() => {
+    copied.value = false
+  }, 2000)
 }
 
 const username = localStorage.getItem('user_name') ?? 'user'
 const avatarUrl = `https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(username)}`
+
+const getAvatarUrl = (userName: string): string => {
+  return `https://api.dicebear.com/10.x/dylan/svg?skinColor=c061cb&backgroundColor=619eff,29e051,f6d32d&moodVariant=confused,happy,hopeful,neutral,superHappy&facialHairProbability=0&hairColorFill=radial&hairColor=000000,1d5dff,ff543d,ffffff&seed=${encodeURIComponent(userName)}`
+}
 
 type ChannelKind = 'text' | 'voice'
 
@@ -46,6 +53,7 @@ const props = defineProps<{
 const emit = defineEmits<{ channelCreated: [] }>()
 
 const route = useRoute()
+const serverStore = ServerStore()
 
 const textChannels = computed(() => props.channels.filter((c) => c.type === 'text'))
 const voiceChannels = computed(() => props.channels.filter((c) => c.type === 'voice'))
@@ -98,6 +106,8 @@ const connectedChannel = computed(() =>
     ? (props.channels.find((c) => c.uuid === voiceStore.currentRoomId) ?? null)
     : null,
 )
+
+console.log(voiceChannels)
 </script>
 
 <template>
@@ -179,7 +189,40 @@ const connectedChannel = computed(() =>
                 :size="15"
                 class="shrink-0 text-base-content/60"
               />
-              <span class="truncate">{{ channel.name }}</span>
+              <span class="truncate flex-1">{{ channel.name }}</span>
+              <!-- Connected users avatars -->
+              <div
+                v-if="serverStore.getVoiceUsersForRoom(channel.uuid).length > 0"
+                class="flex items-center gap-1 ml-1"
+              >
+                <div class="avatar-group -space-x-2">
+                  <template
+                    v-for="user in serverStore.getVoiceUsersForRoom(channel.uuid).slice(0, 3)"
+                    :key="user.userId"
+                  >
+                    <div class="avatar">
+                      <div class="w-5 h-5 rounded-full">
+                        <img
+                          :src="getAvatarUrl(user.username)"
+                          :alt="user.username"
+                          :title="user.username"
+                          class="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  </template>
+                  <div
+                    v-if="serverStore.getVoiceUsersForRoom(channel.uuid).length > 3"
+                    class="avatar"
+                  >
+                    <div
+                      class="w-5 h-5 rounded-full bg-base-300 text-base-content flex items-center justify-center text-xs"
+                    >
+                      +{{ serverStore.getVoiceUsersForRoom(channel.uuid).length - 3 }}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </RouterLink>
           </li>
         </template>

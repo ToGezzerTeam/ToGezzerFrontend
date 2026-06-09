@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import VoiceChat from '@/components/VoiceChat.vue'
 
 const roomId = ref<string>('')
+const serverId = ref<string>('')
 const userId = ref<string>('')
 const isInVoiceChat = ref(false)
 
 const startVoiceChat = () => {
-  if (!roomId.value ) {
+  if (!roomId.value) {
     alert('Please enter room ID ')
     return
   }
@@ -17,6 +18,7 @@ const startVoiceChat = () => {
 const exitVoiceChat = () => {
   isInVoiceChat.value = false
   roomId.value = ''
+  serverId.value = ''
   userId.value = ''
 }
 </script>
@@ -49,13 +51,8 @@ const exitVoiceChat = () => {
                   />
                 </div>
 
-
                 <!-- Join Button -->
-                <button
-                  @click="startVoiceChat"
-                  :disabled="!roomId"
-                  class="btn btn-primary mt-4"
-                >
+                <button @click="startVoiceChat" :disabled="!roomId" class="btn btn-primary mt-4">
                   Join Voice Chat
                 </button>
               </div>
@@ -100,7 +97,7 @@ const exitVoiceChat = () => {
       </div>
 
       <!-- Voice Chat Component -->
-      <VoiceChat :room-id="roomId" :user-id="userId" />
+      <VoiceChat :room-id="roomId" :server-id="serverId" :user-id="userId" />
     </div>
   </div>
 </template>

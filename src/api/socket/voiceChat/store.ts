@@ -45,14 +45,14 @@ export const useVoiceChatStore = defineStore('voiceChat', () => {
     if (user) Object.assign(user, state)
   }
 
-  const connect = async (roomId: string) => {
+  const connect = async (roomId: string, serverId: string) => {
     try {
       isConnecting.value = true
       error.value = null
 
       setupListeners()
 
-      const connected = await voiceService.connect(roomId)
+      const connected = await voiceService.connect(roomId, serverId)
       if (!connected) throw new Error('Failed to connect')
 
       currentRoomId.value = roomId

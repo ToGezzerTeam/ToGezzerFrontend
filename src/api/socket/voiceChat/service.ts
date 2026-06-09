@@ -27,6 +27,7 @@ export class VoiceChatService {
   private localStream: MediaStream | null = null
 
   private roomId: string | null = null
+  private serverId: string | null = null
 
   private listeners = new Map<string, Set<EventListener>>()
 
@@ -56,9 +57,10 @@ export class VoiceChatService {
     this.listeners.get(event)?.delete(callback as EventListener)
   }
 
-  async connect(roomId: string): Promise<boolean> {
+  async connect(roomId: string, serverId: string): Promise<boolean> {
     try {
       this.roomId = roomId
+      this.serverId = serverId
 
       this.socket = io(`${this.wsUrl}/voice-chat`, {
         transports: ['websocket'],
@@ -72,7 +74,7 @@ export class VoiceChatService {
       })
 
       await this.initSocketEvents()
-      await this.joinRoom(roomId)
+      await this.joinRoom(roomId, serverId)
 
       return true
     } catch (error) {
@@ -122,14 +124,14 @@ export class VoiceChatService {
     })
   }
 
-  private joinRoom(roomId: string): Promise<void> {
+  private joinRoom(roomId: string, serverId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const socket = this.socket
       if (!socket) return reject(new Error('Socket not initialized'))
 
       const timeout = setTimeout(() => reject(new Error('Join room timeout')), 5000)
 
-      socket.emit('joinVoiceRoom', { roomId }, async (response?: any) => {
+      socket.emit('joinVoiceRoom', { roomId, serverId }, async (response?: any) => {
         clearTimeout(timeout)
 
         if (!response) return resolve()
@@ -160,14 +162,10 @@ export class VoiceChatService {
 
   private fetchRtpCapabilities(): Promise<unknown> {
     return new Promise((resolve, reject) => {
-      this.socket?.emit(
-        'getRtpCapabilities',
-        { roomId: this.roomId },
-        (res: any) => {
-          if (!res?.rtpCapabilities) return reject(new Error('Invalid RTP capabilities response'))
-          resolve(res.rtpCapabilities)
-        },
-      )
+      this.socket?.emit('getRtpCapabilities', { roomId: this.roomId }, (res: any) => {
+        if (!res?.rtpCapabilities) return reject(new Error('Invalid RTP capabilities response'))
+        resolve(res.rtpCapabilities)
+      })
     })
   }
 
@@ -226,39 +224,35 @@ export class VoiceChatService {
   async createProducerTransport(): Promise<void> {
     if (!this.socket || !this.device) return
 
-    this.socket.emit(
-      'createProducerTransport',
-      { roomId: this.roomId},
-      async (response: any) => {
-        if (!response?.transport) return
+    this.socket.emit('createProducerTransport', { roomId: this.roomId }, async (response: any) => {
+      if (!response?.transport) return
 
-        const transport = await this.device!.createSendTransport(response.transport)
+      const transport = await this.device!.createSendTransport(response.transport)
 
-        transport.on('connect', ({ dtlsParameters }, callback) => {
-          this.socket?.emit(
-            'connectProducerTransport',
-            { transportId: transport.id, dtlsParameters, roomId: this.roomId },
-            callback,
-          )
-        })
+      transport.on('connect', ({ dtlsParameters }, callback) => {
+        this.socket?.emit(
+          'connectProducerTransport',
+          { transportId: transport.id, dtlsParameters, roomId: this.roomId },
+          callback,
+        )
+      })
 
-        transport.on('produce', ({ kind, rtpParameters }, callback) => {
-          this.socket?.emit(
-            'produce',
-            {
-              transportId: transport.id,
-              kind,
-              rtpParameters,
-              roomId: this.roomId,
-            },
-            ({ id }: { id: string }) => callback({ id }),
-          )
-        })
+      transport.on('produce', ({ kind, rtpParameters }, callback) => {
+        this.socket?.emit(
+          'produce',
+          {
+            transportId: transport.id,
+            kind,
+            rtpParameters,
+            roomId: this.roomId,
+          },
+          ({ id }: { id: string }) => callback({ id }),
+        )
+      })
 
-        this.producerTransport = transport
-        await this.produceAudio()
-      },
-    )
+      this.producerTransport = transport
+      await this.produceAudio()
+    })
   }
 
   private async produceAudio(): Promise<void> {
@@ -418,6 +412,9 @@ export class VoiceChatService {
   }
   getRoomId(): string | null {
     return this.roomId
+  }
+  getServerId(): string | null {
+    return this.serverId
   }
 
   getSocketId(): string | null {
