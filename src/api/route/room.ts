@@ -3,16 +3,15 @@ import {
   type JoinRoomDTO,
   type RenameRoomDTO,
   type RoomDTO,
-  RoomDTOSchema,
 } from '@/api/types/room.ts'
 
 const roomApi = apiClient.extend({ prefix:`${API_BASE_URL}/api/rooms` })
 
 export async function createRoom(
   body: Omit<RoomDTO, 'id' | 'uuid' | 'createdAt'>,
-): Promise<RoomDTO> {
+): Promise<void> {
   try {
-    return RoomDTOSchema.parse(await apiClient.post('rooms',{ json: body }).json())
+    await apiClient.post('rooms', { json: body })
   } catch (err) {
     return handleHttpError(err, 'Impossible de créer le salon')
   }

@@ -1,9 +1,8 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-
 import { getServer, getServerDetail } from '@/api/route/server'
-import { joinServerRoom, leaveServerRoom, type VoiceUserInfo } from '@/api/socket/server/socket'
-import type { RoomDTO } from '@/api/types/room'
+import { joinServerRoom, leaveServerRoom, onRoomEvent, type VoiceUserInfo } from '@/api/socket/server/socket'
+import  { type RoomDTO, StatusEvent } from '@/api/types/room'
 
 export type ChannelKind = 'text' | 'voice'
 
@@ -33,6 +32,7 @@ export const ServerStore = defineStore('server', () => {
   // Voice users by room UUID
   const voiceUsersByRoom = ref<Map<string, VoiceUserInfo[]>>(new Map())
   let unsubscribeVocalsUpdate: (() => void) | null = null
+  let unsubscribeRoomUpdate: (() => void) | null = null
 
   const getVoiceUsersForRoom = (roomUuid: string): VoiceUserInfo[] => {
     console.log(
@@ -56,6 +56,25 @@ export const ServerStore = defineStore('server', () => {
         currentServerUuid.value = serverUuid
         unsubscribeVocalsUpdate = joinServerRoom(serverUuid, (payload) => {
           voiceUsersByRoom.value.set(payload.roomId, payload.users)
+        })
+
+        unsubscribeRoomUpdate = onRoomEvent((event) => {
+          if (event.statusEvent === StatusEvent.CREATED) {
+            console.log(
+              '[WS] room created, channelType raw value:',
+              JSON.stringify(event.channelType),
+            )
+            channels.value.push({
+              uuid: event.uuid,
+              name: event.name,
+              type: event.channelType === 'TEXT' ? 'text' : 'voice',
+            })
+          } else if (event.statusEvent === StatusEvent.RENAME) {
+            const ch = channels.value.find((c) => c.uuid === event.uuid)
+            if (ch) ch.name = event.name
+          } else if (event.statusEvent === StatusEvent.DELETED) {
+            channels.value = channels.value.filter((c) => c.uuid !== event.uuid)
+          }
         })
       }
 
@@ -90,6 +109,9 @@ export const ServerStore = defineStore('server', () => {
     }
     unsubscribeVocalsUpdate?.()
     unsubscribeVocalsUpdate = null
+
+    unsubscribeRoomUpdate?.()
+    unsubscribeRoomUpdate = null
   }
 
   return {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { createRoom, joinRoom } from '@/api/route/room.ts'
+import { createRoom } from '@/api/route/room.ts'
 import { useVoiceChatStore } from '@/api/socket/voiceChat/store.ts'
 import { ServerStore } from '@/api/socket/server/store.ts'
 import {
@@ -81,12 +81,11 @@ const submitCreate = async () => {
   isCreating.value = true
   createError.value = null
   try {
-    const room = await createRoom({
+    await createRoom({
       name,
       channelType: newChannelType.value,
       serverId: props.serverId,
     })
-    if (room.uuid) await joinRoom(room.uuid)
     modalRef.value?.close()
     emit('channelCreated')
   } catch (err) {

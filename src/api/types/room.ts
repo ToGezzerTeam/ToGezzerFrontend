@@ -1,6 +1,21 @@
 import { z } from 'zod'
 
 export const CHANNEL_TYPES = ['TEXT', 'VOICE'] as const
+
+export enum StatusEvent {
+  CREATED = 'CREATED',
+  RENAME = 'RENAME',
+  DELETED = 'DELETED',
+}
+
+export type RoomEventPayload = {
+  statusEvent: StatusEvent
+  id: number
+  uuid: string
+  name: string
+  channelType: (typeof CHANNEL_TYPES)[number]
+  serverUuid: string
+}
 export const RoomDTOSchema = z.object({
   id: z.number().int().nullable().optional(),
   uuid: z.uuid().nullable().optional(),
