@@ -10,16 +10,19 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/server/:serverUuid',
       name: 'server',
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/server/:serverUuid/channel/:channelUuid',
       name: 'channel',
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/login',
@@ -31,30 +34,36 @@ const router = createRouter({
       name: 'register',
       component: () => import('../views/RegisterView.vue'),
     },
-    // {
-    //   path: '/about',
-    //   name: 'about',
-    //   // route level code-splitting
-    //   // this generates a separate chunk (About.[hash].js) for this route
-    //   // which is lazy-loaded when the route is visited.
-    //   component: () => import('../views/AboutView.vue'),
-    // },
     {
       path: '/voice-chat',
       name: 'voiceChat',
       component: VoiceChatView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/api-test',
       name: 'apiTest',
       component: () => import('../views/ApiTestView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'notFound',
+      component: () => import('../views/NotFoundView.vue'),
     },
   ],
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth && !localStorage.getItem('auth_token')) {
+    return { name: 'login' }
+  }
 })
 
 export default router

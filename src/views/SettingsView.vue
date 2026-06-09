@@ -1,7 +1,21 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { ArrowLeft } from '@lucide/vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { ArrowLeft, LogOut } from '@lucide/vue'
+
+const router = useRouter()
+
+const confirmLogout = () => {
+  (document.getElementById('logout_modal') as HTMLDialogElement).showModal()
+}
+
+const logout = () => {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user_uuid')
+  localStorage.removeItem('user_id')
+  localStorage.removeItem('user_name')
+  router.push({ name: 'login' })
+}
 
 const themes = [
   'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate',
@@ -34,7 +48,7 @@ const applyTheme = (theme: string) => {
       </div>
     </div>
 
-    <div class="mx-auto max-w-3xl p-8">
+    <div class="mx-auto max-w-3xl p-8 flex flex-col gap-10">
       <section>
         <h2 class="mb-1 text-lg font-bold">Thème</h2>
         <p class="mb-5 text-sm text-base-content/60">Choisissez l'apparence de l'application.</p>
@@ -65,6 +79,29 @@ const applyTheme = (theme: string) => {
           </button>
         </div>
       </section>
+
+      <section>
+        <h2 class="mb-1 text-lg font-bold">Compte</h2>
+        <p class="mb-5 text-sm text-base-content/60">Gérez votre session.</p>
+        <button class="btn btn-error btn-outline gap-2" @click="confirmLogout">
+          <LogOut :size="16" />
+          Se déconnecter
+        </button>
+      </section>
     </div>
   </div>
+
+  <dialog id="logout_modal" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">Se déconnecter ?</h3>
+      <p class="py-4 text-base-content/70">Vous devrez vous reconnecter pour accéder à l'application.</p>
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn btn-ghost">Annuler</button>
+        </form>
+        <button class="btn btn-error" @click="logout">Se déconnecter</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
 </template>

@@ -85,6 +85,8 @@ const onKeydown = (e: KeyboardEvent) => {
 }
 
 onMounted(loadServers)
+
+defineExpose({ openModal })
 </script>
 
 <template>
