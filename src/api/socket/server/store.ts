@@ -69,6 +69,7 @@ export const ServerStore = defineStore('server', () => {
               name: event.name,
               type: event.channelType === 'TEXT' ? 'text' : 'voice',
             })
+            console.log(channels)
           } else if (event.statusEvent === StatusEvent.RENAME) {
             const ch = channels.value.find((c) => c.uuid === event.uuid)
             if (ch) ch.name = event.name
