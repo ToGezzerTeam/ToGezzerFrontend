@@ -34,7 +34,7 @@ const openDeleteModal = () => {
 }
 
 const renameChannel = () => {
-  if (!newChannelName.value.trim()) return
+  if (!props.channel || !newChannelName.value.trim()) return
 
   isExecutingAction.value = true
   renameRoom(props.channel.uuid, { name: newChannelName.value.trim() })
@@ -49,6 +49,8 @@ const renameChannel = () => {
 }
 
 const deleteChannel = () => {
+  if (!props.channel) return
+
   isExecutingAction.value = true
   deleteRoom(props.channel.uuid)
     .catch((err) => {
