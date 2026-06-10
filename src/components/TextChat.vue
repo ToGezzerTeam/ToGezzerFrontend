@@ -7,7 +7,7 @@ import {
   deleteMessage,
   uploadFile,
 } from '@/api/route/message.ts'
-import { joinRoom, leaveRoom, onMessage } from '@/api/socket/messages/socket.ts'
+import { joinRoom, leaveRoom, onMessage, startTyping, stopTyping, onUserTyping } from '@/api/socket/messages/socket.ts'
 import type { MessageDTO } from '@/api/types/messages.ts'
 import FileMessage from '@/components/FileMessage.vue'
 import { Reply, X, Paperclip, ChevronLeft, ChevronRight } from '@lucide/vue'
@@ -48,6 +48,42 @@ const messageMap = computed(() => {
 })
 
 let offMessage: (() => void) | null = null
+let offTyping: (() => void) | null = null
+
+// Typing indicator
+const typingUsers = ref(new Map<string, string>())
+let typingTimer: ReturnType<typeof setTimeout> | null = null
+let isCurrentlyTyping = false
+
+const typingText = computed(() => {
+  const names = [...typingUsers.value.values()]
+  if (names.length === 0) return null
+  if (names.length === 1) return `${names[0]} est en train d'écrire`
+  if (names.length === 2) return `${names[0]} et ${names[1]} sont en train d'écrire`
+  return "Plusieurs personnes sont en train d'écrire"
+})
+
+const handleTypingEvent = (payload: { userId: string; userName: string; isTyping: boolean }) => {
+  if (payload.userId === currentUserUuid) return
+  if (payload.isTyping) {
+    typingUsers.value.set(payload.userId, payload.userName)
+  } else {
+    typingUsers.value.delete(payload.userId)
+  }
+}
+
+const onInput = () => {
+  if (!isCurrentlyTyping) {
+    startTyping(props.roomUuid)
+    isCurrentlyTyping = true
+  }
+  if (typingTimer) clearTimeout(typingTimer)
+  typingTimer = setTimeout(() => {
+    stopTyping(props.roomUuid)
+    isCurrentlyTyping = false
+    typingTimer = null
+  }, 2000)
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -99,14 +135,21 @@ const handleSocketMessage = (msg: MessageDTO) => {
 
 const setupRoom = (roomId: string) => {
   offMessage?.()
+  offTyping?.()
   joinRoom(roomId)
   offMessage = onMessage(handleSocketMessage)
+  offTyping = onUserTyping(handleTypingEvent)
   loadMessages()
 }
 
 const teardownRoom = (roomId: string) => {
+  if (typingTimer) { clearTimeout(typingTimer); typingTimer = null }
+  if (isCurrentlyTyping) { stopTyping(roomId); isCurrentlyTyping = false }
   offMessage?.()
   offMessage = null
+  offTyping?.()
+  offTyping = null
+  typingUsers.value.clear()
   leaveRoom(roomId)
 }
 
@@ -124,6 +167,8 @@ onUnmounted(() => teardownRoom(props.roomUuid))
 const send = async () => {
   const text = newMessage.value.trim()
   if (!text || isSending.value) return
+  if (typingTimer) { clearTimeout(typingTimer); typingTimer = null }
+  if (isCurrentlyTyping) { stopTyping(props.roomUuid); isCurrentlyTyping = false }
   isSending.value = true
   error.value = null
   try {
@@ -341,6 +386,11 @@ const scrollToMessage = (uuid: string) => {
       </template>
     </div>
 
+    <div v-if="typingText" class="flex h-4 items-center gap-1 px-4 text-xs italic text-base-content/50">
+      <span>{{ typingText }}</span>
+      <span class="loading loading-dots loading-xs"></span>
+    </div>
+
     <div class="border-t border-base-300 bg-base-100 px-4 py-3">
       <div v-if="error" role="alert" class="alert alert-error alert-soft mb-2 py-2 text-sm">
         <span>{{ error }}</span>
@@ -378,6 +428,7 @@ const scrollToMessage = (uuid: string) => {
           :placeholder="replyingTo ? `Répondre à ${replyingTo.authorName}…` : 'Écrire un message…'"
           :disabled="isSending"
           @keydown="onKeydown"
+          @input="onInput"
         />
         <button class="btn btn-primary" :disabled="!newMessage.trim() || isSending" @click="send">
           <span v-if="isSending" class="loading loading-spinner loading-sm"></span>
