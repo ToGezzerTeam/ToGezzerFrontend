@@ -1,8 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getServer, getServerDetail } from '@/api/route/server'
-import { joinServerRoom, leaveServerRoom, onRoomEvent, type VoiceUserInfo } from '@/api/socket/server/socket'
-import  { type RoomDTO, StatusEvent } from '@/api/types/room'
+import {
+  joinServerRoom,
+  leaveServerRoom,
+  onRoomEvent,
+  type VoiceUserInfo,
+} from '@/api/socket/server/socket'
+import { type RoomDTO, StatusEvent } from '@/api/types/room'
 
 export type ChannelKind = 'text' | 'voice'
 
@@ -64,12 +69,12 @@ export const ServerStore = defineStore('server', () => {
               '[WS] room created, channelType raw value:',
               JSON.stringify(event.channelType),
             )
+
             channels.value.push({
               uuid: event.uuid,
               name: event.name,
               type: event.channelType === 'TEXT' ? 'text' : 'voice',
             })
-            console.log(channels)
           } else if (event.statusEvent === StatusEvent.RENAME) {
             const ch = channels.value.find((c) => c.uuid === event.uuid)
             if (ch) ch.name = event.name
