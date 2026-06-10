@@ -7,14 +7,21 @@ import {
   deleteMessage,
   uploadFile,
 } from '@/api/route/message.ts'
-import { joinRoom, leaveRoom, onMessage, startTyping, stopTyping, onUserTyping } from '@/api/socket/messages/socket.ts'
+import {
+  joinRoom,
+  leaveRoom,
+  onMessage,
+  startTyping,
+  stopTyping,
+  onUserTyping,
+} from '@/api/socket/messages/socket.ts'
 import type { MessageDTO } from '@/api/types/messages.ts'
 import FileMessage from '@/components/FileMessage.vue'
-import { Reply, X, Paperclip, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { Reply, X, Paperclip, Pencil, Trash2 } from '@lucide/vue'
 
 const props = defineProps<{ roomUuid: string }>()
 
-const currentUserUuid = localStorage.getItem('user_id') ?? ''
+const currentUserUuid = localStorage.getItem('user_uuid') ?? ''
 
 const messages = ref<MessageDTO[]>([])
 const hasMore = ref(false)
@@ -24,7 +31,7 @@ const isSending = ref(false)
 const newMessage = ref('')
 const error = ref<string | null>(null)
 const messagesEl = ref<HTMLElement | null>(null)
-const inputEl = ref<HTMLInputElement | null>(null)
+const inputEl = ref<HTMLTextAreaElement | null>(null)
 const fileInputEl = ref<HTMLInputElement | null>(null)
 const isUploadingFile = ref(false)
 
@@ -72,7 +79,15 @@ const handleTypingEvent = (payload: { userId: string; userName: string; isTyping
   }
 }
 
+const autoResize = () => {
+  const el = inputEl.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
 const onInput = () => {
+  autoResize()
   if (!isCurrentlyTyping) {
     startTyping(props.roomUuid)
     isCurrentlyTyping = true
@@ -98,6 +113,7 @@ const loadMessages = async () => {
     const page = await fetchMessagesPage(props.roomUuid, { pageSize: 50 })
     messages.value = page.messageDTOS
     hasMore.value = page.hasMore
+    isLoading.value = false
     await scrollToBottom()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement.'
@@ -143,8 +159,14 @@ const setupRoom = (roomId: string) => {
 }
 
 const teardownRoom = (roomId: string) => {
-  if (typingTimer) { clearTimeout(typingTimer); typingTimer = null }
-  if (isCurrentlyTyping) { stopTyping(roomId); isCurrentlyTyping = false }
+  if (typingTimer) {
+    clearTimeout(typingTimer)
+    typingTimer = null
+  }
+  if (isCurrentlyTyping) {
+    stopTyping(roomId)
+    isCurrentlyTyping = false
+  }
   offMessage?.()
   offMessage = null
   offTyping?.()
@@ -167,8 +189,14 @@ onUnmounted(() => teardownRoom(props.roomUuid))
 const send = async () => {
   const text = newMessage.value.trim()
   if (!text || isSending.value) return
-  if (typingTimer) { clearTimeout(typingTimer); typingTimer = null }
-  if (isCurrentlyTyping) { stopTyping(props.roomUuid); isCurrentlyTyping = false }
+  if (typingTimer) {
+    clearTimeout(typingTimer)
+    typingTimer = null
+  }
+  if (isCurrentlyTyping) {
+    stopTyping(props.roomUuid)
+    isCurrentlyTyping = false
+  }
   isSending.value = true
   error.value = null
   try {
@@ -178,6 +206,7 @@ const send = async () => {
     })
     newMessage.value = ''
     replyingTo.value = null
+    if (inputEl.value) inputEl.value.style.height = 'auto'
   } catch (err) {
     error.value = err instanceof Error ? err.message : "Impossible d'envoyer le message."
   } finally {
@@ -261,6 +290,9 @@ const formatTime = (iso: string) =>
 
 const truncate = (text: string, max = 60) => (text.length > max ? text.slice(0, max) + '…' : text)
 
+const formatMessage = (content: string) =>
+  content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+
 const scrollToMessage = (uuid: string) => {
   document.getElementById(`msg-${uuid}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
@@ -268,7 +300,7 @@ const scrollToMessage = (uuid: string) => {
 
 <template>
   <div class="flex h-full flex-col">
-    <div ref="messagesEl" class="flex flex-1 flex-col gap-0.5 overflow-y-auto px-4 py-3">
+    <div ref="messagesEl" class="flex max-w-full flex-1 flex-col gap-0.5 overflow-y-auto px-4 py-3">
       <div v-if="hasMore" class="flex justify-center py-2">
         <button class="btn btn-ghost btn-sm" :disabled="isLoadingMore" @click="loadMore">
           <span v-if="isLoadingMore" class="loading loading-spinner loading-xs"></span>
@@ -302,7 +334,7 @@ const scrollToMessage = (uuid: string) => {
               />
             </div>
           </div>
-          <div>
+          <div class="min-w-0 max-w-full">
             <div class="chat-header mb-0.5 text-xs opacity-60">
               {{ msg.authorName }}
               <time class="ml-1">{{ formatTime(msg.createdAt) }}</time>
@@ -336,7 +368,7 @@ const scrollToMessage = (uuid: string) => {
             </div>
 
             <template v-else>
-              <div class="chat-bubble flex flex-col gap-1.5">
+              <div class="chat-bubble space-y-1.5 break-words max-w-full">
                 <div
                   v-if="msg.answerTo && messageMap.get(msg.answerTo)"
                   class="cursor-pointer rounded border-l-2 border-current/40 bg-black/10 px-2 py-1 text-xs opacity-70 transition-opacity hover:opacity-100"
@@ -353,7 +385,7 @@ const scrollToMessage = (uuid: string) => {
                   :object-name="msg.content.value"
                 />
                 <span v-else>
-                  {{ msg.content.value }}
+                  <span v-html="formatMessage(msg.content.value)"></span>
                   <span v-if="msg.state === 'updated'" class="ml-1 text-xs opacity-60"
                     >(modifié)</span
                   >
@@ -371,12 +403,17 @@ const scrollToMessage = (uuid: string) => {
                   <button
                     v-if="msg.content.type === 'text'"
                     class="btn btn-ghost btn-xs"
+                    title="Modifier"
                     @click="startEdit(msg)"
                   >
-                    Modifier
+                    <Pencil :size="14" />
                   </button>
-                  <button class="btn btn-ghost btn-xs text-error" @click="confirmDelete(msg)">
-                    Supprimer
+                  <button
+                    class="btn btn-ghost btn-xs text-error"
+                    title="Supprimer"
+                    @click="confirmDelete(msg)"
+                  >
+                    <Trash2 :size="14" />
                   </button>
                 </template>
               </div>
@@ -386,7 +423,10 @@ const scrollToMessage = (uuid: string) => {
       </template>
     </div>
 
-    <div v-if="typingText" class="flex h-4 items-center gap-1 px-4 text-xs italic text-base-content/50">
+    <div
+      v-if="typingText"
+      class="flex h-4 items-center gap-1 px-4 text-xs italic text-base-content/50"
+    >
       <span>{{ typingText }}</span>
       <span class="loading loading-dots loading-xs"></span>
     </div>
@@ -409,7 +449,7 @@ const scrollToMessage = (uuid: string) => {
         <button class="btn btn-ghost btn-xs" @click="replyingTo = null"><X :size="14" /></button>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex items-end gap-2">
         <input ref="fileInputEl" type="file" class="hidden" @change="onFileChange" />
         <button
           class="btn btn-ghost btn-square"
@@ -420,11 +460,12 @@ const scrollToMessage = (uuid: string) => {
           <span v-if="isUploadingFile" class="loading loading-spinner loading-sm"></span>
           <Paperclip v-else :size="18" />
         </button>
-        <input
+        <textarea
           ref="inputEl"
           v-model="newMessage"
-          type="text"
-          class="input flex-1"
+          rows="1"
+          class="textarea flex-1 resize-none overflow-y-auto leading-normal"
+          style="min-height: unset; max-height: 8rem"
           :placeholder="replyingTo ? `Répondre à ${replyingTo.authorName}…` : 'Écrire un message…'"
           :disabled="isSending"
           @keydown="onKeydown"
