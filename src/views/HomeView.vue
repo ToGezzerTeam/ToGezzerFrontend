@@ -5,10 +5,10 @@ import ServerList from '@/components/ServerList.vue'
 import DiscordSidebar from '@/components/DiscordSidebar.vue'
 import TextChat from '@/components/TextChat.vue'
 import VoiceChat from '@/components/VoiceChat.vue'
-import { Hash, Volume2, ChevronLeft, ChevronRight, Plus, LogOut } from '@lucide/vue'
+import { Plus, LogOut } from '@lucide/vue'
 import { joinRoom } from '@/api/route/room.ts'
 import { ServerStore } from '@/api/socket/server/store.ts'
-import { joinRoom as socketJoinServer } from '@/api/socket/messages/socket.ts'
+import ChannelTopBar from '@/components/ChannelTopBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,24 +91,17 @@ onUnmounted(() => {
       :channels="serverStore.channels"
       :is-loading="serverStore.isLoadingChannels"
       :load-error="serverStore.loadChannelsError"
-      @channel-created="reloadServer"
     />
 
     <!-- Text channel -->
     <template v-if="selectedChannel?.type === 'text'">
       <div class="flex flex-1 flex-col overflow-hidden">
-        <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
-          <div class="navbar-start gap-2">
-            <Hash :size="16" class="text-base-content/60" />
-            <span class="font-semibold">{{ selectedChannel.name }}</span>
-          </div>
-          <div class="navbar-end">
-            <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
-              <ChevronLeft v-if="isSidebarOpen" :size="16" />
-              <ChevronRight v-else :size="16" />
-            </button>
-          </div>
-        </div>
+        <ChannelTopBar
+          :channel="selectedChannel"
+          :is-sidebar-open="isSidebarOpen"
+          @toggle-sidebar="toggleSidebar"
+        >
+        </ChannelTopBar>
         <TextChat :room-uuid="selectedChannel.uuid" class="flex-1 overflow-hidden" />
       </div>
     </template>
@@ -116,18 +109,11 @@ onUnmounted(() => {
     <!-- Voice channel -->
     <template v-else-if="selectedChannel?.type === 'voice'">
       <div class="flex flex-1 flex-col overflow-hidden">
-        <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
-          <div class="navbar-start gap-2">
-            <Volume2 :size="16" class="text-base-content/60" />
-            <span class="font-semibold">{{ selectedChannel.name }}</span>
-          </div>
-          <div class="navbar-end">
-            <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
-              <ChevronLeft v-if="isSidebarOpen" :size="16" />
-              <ChevronRight v-else :size="16" />
-            </button>
-          </div>
-        </div>
+        <ChannelTopBar
+          :channel="selectedChannel"
+          :is-sidebar-open="isSidebarOpen"
+          @toggle-sidebar="toggleSidebar"
+        />
         <VoiceChat
           :room-id="selectedChannel.uuid"
           :server-id="serverUuid!"

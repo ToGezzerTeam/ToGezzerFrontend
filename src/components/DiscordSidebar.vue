@@ -50,8 +50,6 @@ const props = defineProps<{
   loadError: string | null
 }>()
 
-const emit = defineEmits<{ channelCreated: [] }>()
-
 const route = useRoute()
 const serverStore = ServerStore()
 
@@ -87,7 +85,6 @@ const submitCreate = async () => {
       serverId: props.serverId,
     })
     modalRef.value?.close()
-    emit('channelCreated')
   } catch (err) {
     createError.value = err instanceof Error ? err.message : 'Erreur lors de la création.'
   } finally {
@@ -105,8 +102,6 @@ const connectedChannel = computed(() =>
     ? (props.channels.find((c) => c.uuid === voiceStore.currentRoomId) ?? null)
     : null,
 )
-
-console.log(voiceChannels)
 </script>
 
 <template>
