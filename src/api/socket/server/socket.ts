@@ -1,6 +1,12 @@
 import { getSocket } from '../socket'
 import type { RoomEventPayload } from '@/api/types/room.ts'
 
+export type UserPayload = {
+  uuid: string
+  userName: string
+  serverUuid: string
+}
+
 export interface VoiceUserInfo {
   userId: string
   username: string
@@ -44,5 +50,11 @@ export const onRoomEvent = (handler: (event: RoomEventPayload) => void): (() => 
   const socket = getSocket()
   socket.on('room', handler)
   return () => socket.off('room', handler)
+}
+
+export const onUserEvent = (handler: (payload: UserPayload) => void): (() => void) => {
+  const socket = getSocket()
+  socket.on('user', handler)
+  return () => socket.off('user', handler)
 }
 

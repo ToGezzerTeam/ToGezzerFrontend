@@ -9,11 +9,13 @@ import { Plus, LogOut } from '@lucide/vue'
 import { joinRoom } from '@/api/route/room.ts'
 import { ServerStore } from '@/api/socket/server/store.ts'
 import ChannelTopBar from '@/components/ChannelTopBar.vue'
+import OnlineUsersList from '@/components/OnlineUsersList.vue'
 
 const route = useRoute()
 const router = useRouter()
 const serverStore = ServerStore()
 const isSidebarOpen = ref(true)
+const isUsersListOpen = ref(false)
 const serverListRef = ref<InstanceType<typeof ServerList> | null>(null)
 const logoutModalRef = ref<HTMLDialogElement | null>(null)
 
@@ -99,10 +101,14 @@ onUnmounted(() => {
         <ChannelTopBar
           :channel="selectedChannel"
           :is-sidebar-open="isSidebarOpen"
+          :is-users-list-open="isUsersListOpen"
           @toggle-sidebar="toggleSidebar"
-        >
-        </ChannelTopBar>
-        <TextChat :room-uuid="selectedChannel.uuid" class="flex-1 overflow-hidden" />
+          @toggle-users="isUsersListOpen = !isUsersListOpen"
+        />
+        <div class="flex flex-1 overflow-hidden">
+          <TextChat :room-uuid="selectedChannel.uuid" class="flex-1 overflow-hidden" />
+          <OnlineUsersList v-if="isUsersListOpen" :users="serverStore.onlineUsers" />
+        </div>
       </div>
     </template>
 
@@ -112,46 +118,65 @@ onUnmounted(() => {
         <ChannelTopBar
           :channel="selectedChannel"
           :is-sidebar-open="isSidebarOpen"
+          :is-users-list-open="isUsersListOpen"
           @toggle-sidebar="toggleSidebar"
+          @toggle-users="isUsersListOpen = !isUsersListOpen"
         />
-        <VoiceChat
-          :room-id="selectedChannel.uuid"
-          :server-id="serverUuid!"
-          class="flex-1 overflow-hidden"
-        />
+        <div class="flex flex-1 overflow-hidden">
+          <VoiceChat
+            :room-id="selectedChannel.uuid"
+            :server-id="serverUuid!"
+            class="flex-1 overflow-hidden"
+          />
+          <OnlineUsersList v-if="isUsersListOpen" :users="serverStore.onlineUsers" />
+        </div>
       </div>
     </template>
 
-    <!-- Other states -->
+    <!-- Server selected, no channel -->
+    <template v-else-if="serverUuid">
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <ChannelTopBar
+          :channel="null"
+          :is-sidebar-open="isSidebarOpen"
+          :is-users-list-open="isUsersListOpen"
+          @toggle-sidebar="toggleSidebar"
+          @toggle-users="isUsersListOpen = !isUsersListOpen"
+        />
+        <div class="flex flex-1 overflow-hidden">
+          <main class="flex flex-1 items-center justify-center overflow-y-auto p-6">
+            <p class="text-base-content/70">
+              Sélectionne un channel dans la sidebar pour afficher sa page.
+            </p>
+          </main>
+          <OnlineUsersList v-if="isUsersListOpen" :users="serverStore.onlineUsers" />
+        </div>
+      </div>
+    </template>
+
+    <!-- No server selected -->
     <main v-else class="flex flex-1 flex-col items-center justify-center overflow-y-auto p-6">
       <div class="flex w-full max-w-sm flex-col items-center gap-6 text-center">
-        <template v-if="!serverUuid">
-          <h1 class="text-3xl font-bold">Bienvenue sur ToGezzer</h1>
-          <p class="text-base-content/60">Rejoins ou crée un serveur pour commencer.</p>
-          <div class="flex w-full flex-col gap-3">
-            <button
-              class="btn btn-primary w-full gap-2"
-              type="button"
-              @click="serverListRef?.openModal()"
-            >
-              <Plus :size="18" />
-              Créer / Rejoindre un serveur
-            </button>
-            <button
-              class="btn btn-error btn-outline w-full gap-2"
-              type="button"
-              @click="logoutModalRef?.showModal()"
-            >
-              <LogOut :size="18" />
-              Se déconnecter
-            </button>
-          </div>
-        </template>
-        <template v-else>
-          <p class="text-base-content/70">
-            Sélectionne un channel dans la sidebar pour afficher sa page.
-          </p>
-        </template>
+        <h1 class="text-3xl font-bold">Bienvenue sur ToGezzer</h1>
+        <p class="text-base-content/60">Rejoins ou crée un serveur pour commencer.</p>
+        <div class="flex w-full flex-col gap-3">
+          <button
+            class="btn btn-primary w-full gap-2"
+            type="button"
+            @click="serverListRef?.openModal()"
+          >
+            <Plus :size="18" />
+            Créer / Rejoindre un serveur
+          </button>
+          <button
+            class="btn btn-error btn-outline w-full gap-2"
+            type="button"
+            @click="logoutModalRef?.showModal()"
+          >
+            <LogOut :size="18" />
+            Se déconnecter
+          </button>
+        </div>
       </div>
     </main>
   </div>
