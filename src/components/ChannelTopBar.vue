@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { deleteRoom, renameRoom } from '@/api/route/room'
-import { Hash, Volume2, ChevronLeft, ChevronRight, Trash, Edit } from '@lucide/vue'
+import { Hash, Volume2, ChevronLeft, ChevronRight, Trash, Edit, Users } from '@lucide/vue'
 import { type ChannelItem } from '@/api/socket/server/store.ts'
 import { ref } from 'vue'
 
-const props = defineProps<{ channel: ChannelItem; isSidebarOpen: boolean }>()
+const props = defineProps<{ channel: ChannelItem | null; isSidebarOpen: boolean; isUsersListOpen: boolean }>()
 const emit = defineEmits<{
   (e: 'toggle-sidebar'): void
+  (e: 'toggle-users'): void
 }>()
 
 const renameChannelModalRef = ref<HTMLDialogElement | null>(null)
@@ -18,7 +19,12 @@ const toggleSidebar = () => {
   emit('toggle-sidebar')
 }
 
+const toggleUsers = () => {
+  emit('toggle-users')
+}
+
 const openRenameModal = () => {
+  if (!props.channel) return
   newChannelName.value = props.channel.name
   renameChannelModalRef.value?.showModal()
 }
@@ -55,39 +61,45 @@ const deleteChannel = () => {
 }
 </script>
 <template>
-  <div class="flex flex-1 flex-col overflow-hidden">
-    <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
-      <div class="navbar-start gap-2">
-        <template v-if="channel.type === 'text'">
-          <Hash :size="16" class="text-base-content/60" />
-        </template>
-        <template v-else-if="channel.type === 'voice'">
-          <Volume2 :size="16" class="text-base-content/60" />
-        </template>
-        <span class="font-semibold">{{ channel.name }}</span>
-      </div>
-      <div class="navbar-end">
+  <div class="navbar min-h-12 border-b border-base-300 bg-base-100 px-4">
+    <div class="navbar-start gap-2">
+      <template v-if="channel?.type === 'text'">
+        <Hash :size="16" class="text-base-content/60" />
+      </template>
+      <template v-else-if="channel?.type === 'voice'">
+        <Volume2 :size="16" class="text-base-content/60" />
+      </template>
+      <span v-if="channel" class="font-semibold">{{ channel.name }}</span>
+    </div>
+    <div class="navbar-end">
+      <template v-if="channel">
         <button class="btn btn-ghost btn-sm" type="button" @click="openRenameModal">
           <Edit :size="16" />
         </button>
         <button class="btn btn-ghost btn-sm" type="button" @click="openDeleteModal">
           <Trash class="text-error" :size="16" />
         </button>
-
         <div class="divider-vertical w-0.5 h-8"></div>
-
-        <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
-          <ChevronLeft v-if="isSidebarOpen" :size="16" />
-          <ChevronRight v-else :size="16" />
-        </button>
-      </div>
+      </template>
+      <button
+        class="btn btn-ghost btn-sm"
+        :class="{ 'text-primary': isUsersListOpen }"
+        type="button"
+        @click="toggleUsers"
+      >
+        <Users :size="16" />
+      </button>
+      <div class="divider-vertical w-0.5 h-8"></div>
+      <button class="btn btn-ghost btn-sm" type="button" @click="toggleSidebar">
+        <ChevronLeft v-if="isSidebarOpen" :size="16" />
+        <ChevronRight v-else :size="16" />
+      </button>
     </div>
-    <TextChat :room-uuid="channel.uuid" class="flex-1 overflow-hidden" />
   </div>
 
   <dialog ref="renameChannelModalRef" class="modal">
     <div class="modal-box">
-      <h3 class="text-lg font-bold">Renommer le salon "{{ channel.name }}" ?</h3>
+      <h3 class="text-lg font-bold">Renommer le salon "{{ channel?.name }}" ?</h3>
       <input
         type="text"
         placeholder="Nouveau nom du salon"
@@ -108,7 +120,7 @@ const deleteChannel = () => {
 
   <dialog ref="deleteChannelModalRef" class="modal">
     <div class="modal-box">
-      <h3 class="text-lg font-bold">Supprimer le salon "{{ channel.name }}" ?</h3>
+      <h3 class="text-lg font-bold">Supprimer le salon "{{ channel?.name }}" ?</h3>
       <p class="py-4">Cette action est irréversible. Tous les messages du salon seront perdus.</p>
       <div class="modal-action">
         <form method="dialog">

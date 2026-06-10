@@ -5,9 +5,15 @@ import {
   joinServerRoom,
   leaveServerRoom,
   onRoomEvent,
+  onUserEvent,
   type VoiceUserInfo,
 } from '@/api/socket/server/socket'
 import { type RoomDTO, StatusEvent } from '@/api/types/room'
+
+export type OnlineUser = {
+  uuid: string
+  username: string
+}
 
 export type ChannelKind = 'text' | 'voice'
 
@@ -36,8 +42,10 @@ export const ServerStore = defineStore('server', () => {
 
   // Voice users by room UUID
   const voiceUsersByRoom = ref<Map<string, VoiceUserInfo[]>>(new Map())
+  const onlineUsers = ref<OnlineUser[]>([])
   let unsubscribeVocalsUpdate: (() => void) | null = null
   let unsubscribeRoomUpdate: (() => void) | null = null
+  let unsubscribeUserUpdate: (() => void) | null = null
 
   const getVoiceUsersForRoom = (roomUuid: string): VoiceUserInfo[] => {
     console.log(
@@ -61,6 +69,12 @@ export const ServerStore = defineStore('server', () => {
         currentServerUuid.value = serverUuid
         unsubscribeVocalsUpdate = joinServerRoom(serverUuid, (payload) => {
           voiceUsersByRoom.value.set(payload.roomId, payload.users)
+        })
+
+        unsubscribeUserUpdate = onUserEvent((payload) => {
+          if (!onlineUsers.value.find((u) => u.uuid === payload.uuid)) {
+            onlineUsers.value.push({ uuid: payload.uuid, username: payload.userName })
+          }
         })
 
         unsubscribeRoomUpdate = onRoomEvent((event) => {
@@ -91,6 +105,9 @@ export const ServerStore = defineStore('server', () => {
       serverId.value = detail.serverId ?? null
       serverName.value = server.name
       channels.value = normalizeChannels(detail.roomDTOS)
+      onlineUsers.value = (detail.userDtos ?? [])
+        .filter((u): u is { uuid: string; username: string } => !!u.uuid && !!u.username)
+        .map((u) => ({ uuid: u.uuid, username: u.username }))
     } catch (err) {
       loadChannelsError.value = err instanceof Error ? err.message : 'Erreur inconnue.'
       channels.value = []
@@ -108,6 +125,7 @@ export const ServerStore = defineStore('server', () => {
     loadChannelsError.value = null
     isLoadingChannels.value = false
     voiceUsersByRoom.value.clear()
+    onlineUsers.value = []
 
     if (currentServerUuid.value) {
       leaveServerRoom(currentServerUuid.value)
@@ -118,6 +136,9 @@ export const ServerStore = defineStore('server', () => {
 
     unsubscribeRoomUpdate?.()
     unsubscribeRoomUpdate = null
+
+    unsubscribeUserUpdate?.()
+    unsubscribeUserUpdate = null
   }
 
   return {
@@ -128,6 +149,7 @@ export const ServerStore = defineStore('server', () => {
     isLoadingChannels,
     loadChannelsError,
     voiceUsersByRoom,
+    onlineUsers,
     loadServerDetail,
     clearServerState,
     getVoiceUsersForRoom,
