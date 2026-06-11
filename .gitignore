@@ -31,12 +31,12 @@ coverage
 # Vitest
 __screenshots__/
 
-# # LLM / AI tools
-# .claude/
-# .cursor/
-# .aider*
-# .copilot/
+# LLM / AI tools
+.claude/
+.cursor/
+.aider*
+.copilot/
 
-# .env
+.env
 
-# CLAUDE.md
+CLAUDE.md
