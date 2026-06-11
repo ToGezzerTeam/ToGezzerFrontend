@@ -47,6 +47,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/invite/:serverUuid',
+      name: 'invite',
+      component: () => import('../views/InviteView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/api-test',
       name: 'apiTest',
       component: () => import('../views/ApiTestView.vue'),
