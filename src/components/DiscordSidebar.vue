@@ -15,15 +15,36 @@ import {
   PhoneOff,
   Settings,
   UserPlus,
+  Link,
+  Copy,
 } from '@lucide/vue'
+import QRCode from 'qrcode'
 
-const copied = ref(false)
-const copyInvite = async () => {
+// Invite modal
+const inviteModalRef = ref<HTMLDialogElement | null>(null)
+const copiedLink = ref(false)
+const copiedUuid = ref(false)
+const qrDataUrl = ref('')
+
+const inviteUrl = computed(
+  () => `${window.location.origin}/invite/${props.serverUuid}`,
+)
+
+const openInviteModal = async () => {
+  qrDataUrl.value = await QRCode.toDataURL(inviteUrl.value, { width: 200, margin: 1 })
+  inviteModalRef.value?.showModal()
+}
+
+const copyLink = async () => {
+  await navigator.clipboard.writeText(inviteUrl.value)
+  copiedLink.value = true
+  setTimeout(() => { copiedLink.value = false }, 2000)
+}
+
+const copyUuid = async () => {
   await navigator.clipboard.writeText(props.serverUuid)
-  copied.value = true
-  setTimeout(() => {
-    copied.value = false
-  }, 2000)
+  copiedUuid.value = true
+  setTimeout(() => { copiedUuid.value = false }, 2000)
 }
 
 const username = localStorage.getItem('user_name') ?? 'user'
@@ -111,8 +132,8 @@ const connectedChannel = computed(() =>
         <span class="truncate font-semibold">{{ serverName ?? 'ToGezzer' }}</span>
       </div>
       <div class="navbar-end">
-        <div class="tooltip tooltip-bottom" :data-tip="copied ? 'Copié !' : 'Inviter'">
-          <button class="btn btn-ghost btn-sm btn-circle" type="button" @click="copyInvite">
+        <div class="tooltip tooltip-bottom" data-tip="Inviter">
+          <button class="btn btn-ghost btn-sm btn-circle" type="button" @click="openInviteModal">
             <UserPlus :size="16" />
           </button>
         </div>
@@ -291,6 +312,31 @@ const connectedChannel = computed(() =>
       </div>
     </div>
   </aside>
+
+  <!-- Invite modal -->
+  <dialog ref="inviteModalRef" class="modal">
+    <div class="modal-box flex flex-col items-center gap-4">
+      <h3 class="text-lg font-bold self-start">Inviter sur {{ serverName ?? 'ce serveur' }}</h3>
+
+      <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR code d'invitation" class="rounded-lg" width="200" height="200" />
+
+      <div class="w-full flex flex-col gap-2">
+        <button class="btn btn-primary w-full gap-2" @click="copyLink">
+          <Link :size="16" />
+          {{ copiedLink ? 'Lien copié !' : 'Copier le lien d\'invitation' }}
+        </button>
+        <button class="btn btn-ghost btn-sm w-full gap-2 font-mono text-xs text-base-content/60" @click="copyUuid">
+          <Copy :size="14" />
+          {{ copiedUuid ? 'UUID copié !' : serverUuid }}
+        </button>
+      </div>
+
+      <p class="text-xs text-base-content/50 text-center">
+        Scannez le QR code ou partagez le lien pour rejoindre directement le serveur.
+      </p>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
 
   <!-- Create channel modal -->
   <dialog ref="modalRef" class="modal">
